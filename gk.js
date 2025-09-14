@@ -7,7 +7,8 @@ let retryIntervalId = null;
 
 // 一言动画相关全局变量
 let isHitokotoAnimating = false;
-const HITOKOTO_REFRESH_INTERVAL = 30000;
+const HITOKOTO_REFRESH_ALLOW = true; //设置为false禁止自动刷新
+const HITOKOTO_REFRESH_INTERVAL = 30000; //一言自动刷新间隔
 const TYPING_SPEED_MS = 100;
 const DELETING_SPEED_MS = 50;
 
@@ -88,7 +89,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 2. 一言初始化及定时刷新
     updateHitokotoWithAnimation(true);
+    if (HITOKOTO_REFRESH_ALLOW) {
     setInterval(() => updateHitokotoWithAnimation(false), HITOKOTO_REFRESH_INTERVAL);
+    };
 
     // 3. 动态颜色处理
     if (useDynamicColor) {
@@ -96,4 +99,5 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
         setAutoColor();
     }
+
 });
