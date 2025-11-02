@@ -100,3 +100,20 @@ footer {
     color: black;
     transition: color 0.5s ease;
 }
+
+/* 新增：网络错误提示框样式 */
+.network-error-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 15px 30px;
+    border-radius: 8px;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    font-size: 18px;
+    pointer-events: none; /* 确保提示框不会干扰用户交互 */
+}
