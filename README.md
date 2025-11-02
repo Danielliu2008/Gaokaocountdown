@@ -20,6 +20,7 @@ This project is based on [Countdown](https://github.com/Gasolcloudteam/Countdown
 - **动态背景**：每日自动更新 Bing 壁纸作为背景。  
 - **动态取色**：自动提取背景主色调并应用到倒计时文字动画。  
 - **每日一言**：接入 [Hitokoto API](https://hitokoto.cn)
+- **可以完全离线**: 提供本地壁纸替换方案，同时可以本地取色。（详情见下方“本地化方法”）
 
 ---
 
@@ -60,6 +61,14 @@ This project is based on [Countdown](https://github.com/Gasolcloudteam/Countdown
 ├── gk.css         # 样式文件
 └── gk.js          # 倒计时逻辑、取色和一言功能
 
+```
+
+## 本地化方法
+1. 本地壁纸：将JS首行`enable_local_wallpaper`启用为`true`，并在html同目录储存一张`wallpaper.jpg`的文件
+2. 本地取色：下载[color-thief.umd.js](https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js)并保存至同目录，同时修改`wallpaper.html`如下
+
+```
+(line7) <script src="color-thief.umd.js"></script>
 ```
 
 ## 📜 License
