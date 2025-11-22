@@ -1,3 +1,19 @@
+/* 1. 引入精确模式的字体 (数字) */
+@font-face {
+  font-family: 'NumberFont';
+  src: url('number.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* 2. 引入星轨模式的字体 (大数字) */
+@font-face {
+  font-family: 'StarFont';
+  src: url('star.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 @font-face {
   font-family: 'HitokotoFont';
   src: url('hitokoto_font.ttf') format('truetype');
@@ -5,111 +21,152 @@
   font-style: normal;
 }
 
-body {
-    font-family: 'Arial', sans-serif;
-    text-align: center;
-    margin: 0;
-    padding: 0;
-    height: 100vh;
+body { font-family: 'Arial', sans-serif; text-align: center; margin: 0; padding: 0; height: 100vh; display: flex; justify-content: center; align-items: center; background-image: url('https://api.paugram.com/bing'); background-size: cover; background-position: center; background-repeat: no-repeat; position: relative; overflow: hidden; }
+.overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.15); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 1; }
+.content { position: relative; z-index: 2; padding-bottom: clamp(30px, 3.125vw, 90px); width: 90%; max-width: 1400px; display: flex; flex-direction: column; align-items: center; }
+
+/* --- 精确模式字体应用 --- */
+/* 应用 NumberFont 到所有倒计时数字 */
+#days, #weeks, #remaining-days, #hours, #minutes, #seconds, #year {
+    font-family: 'NumberFont', 'Arial', sans-serif;
+}
+/* 微调精确模式下数字的基线，防止自定义字体上下偏移 */
+.countdown span.dynamic-color {
+    position: relative;
+    top: 2px; 
+}
+
+h1 { font-size: clamp(24px, 1.875vw, 54px); margin-bottom: clamp(5px, 0.52vw, 15px); }
+.weeks-countdown { font-size: clamp(20px, 1.46vw, 42px); font-weight: normal; margin-top: 0; margin-bottom: clamp(10px, 1.04vw, 30px); }
+.countdown { font-size: clamp(32px, 2.5vw, 72px); font-weight: bold; margin-bottom: clamp(10px, 1.04vw, 30px); display: flex; justify-content: center; align-items: baseline; }
+.countdown .dynamic-color { margin: 0 clamp(2px, 0.2vw, 6px); }
+.countdown .countdown-unit { margin: 0 clamp(4px, 0.4vw, 12px); }
+.greeting { font-size: clamp(18px, 1.25vw, 36px); margin-top: clamp(10px, 1.04vw, 30px); display: none; }
+
+/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+/* 星轨主题样式 (含流星特效) */
+/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+#orbit-countdown {
+    position: relative;
+    width: clamp(300px, 15.625vw, 450px);
+    height: clamp(300px, 15.625vw, 450px);
     display: flex;
     justify-content: center;
     align-items: center;
-    background-image: url('https://api.paugram.com/bing');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    position: relative;
-    overflow: hidden;
+    margin: clamp(10px, 1.04vw, 30px) 0;
 }
 
-.overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+/* 轨道装饰线 */
+#orbit-countdown::before {
+    content: ''; position: absolute; border-radius: 50%; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none;
+    width: 68%; height: 68%; border: 1px dashed rgba(255, 255, 255, 0.4);
+    z-index: 1;
+}
+#orbit-countdown::after {
+    content: ''; position: absolute; border-radius: 50%; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none;
+    width: 100%; height: 100%; border: 1px solid rgba(255, 255, 255, 0.2);
     z-index: 1;
 }
 
-h1 {
-    font-size: 36px;
-    margin-bottom: 10px;
-}
-
-/* ... 其他未变动的样式 ... */
-.weeks-countdown { font-size: 28px; font-weight: normal; margin-top: 0; margin-bottom: 20px; }
-.countdown { font-size: 48px; font-weight: bold; margin-bottom: 20px; display: flex; justify-content: center; align-items: baseline; }
-.countdown .dynamic-color { margin: 0 4px; }
-.countdown .countdown-unit { margin: 0 8px; }
-.greeting { font-size: 24px; margin-top: 20px; display: none; }
-
-.hitokoto {
-    /* --- 修改：增大字号和外边距，调整位置和清晰度 --- */
-    font-size: 22px; /* 稍微增大字号 */
-    margin-top: 50px; /* 增加与上方日历的距离 */
-    font-style: italic;
-    font-family: 'HitokotoFont', "KaiTi", serif;
-    /* --- 修改：增强文字阴影效果，使其更突出 --- */
-    text-shadow: 0px 2px 8px rgba(0, 0, 0, 0.5); /* 阴影更深、更模糊，立体感更强 */
-}
-
-footer {
+/* --- 新增：流星容器与样式 --- */
+.meteor-container {
     position: absolute;
-    bottom: 0;
-    width: 100%;
-    padding: 10px;
-    text-align: center;
-    box-sizing: border-box;
-    z-index: 2;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0; /* 放在最底层，但在背景之上 */
+    /* 让整个流星盘缓慢旋转，增加动感 */
+    //animation: spinMeteors 120s linear infinite;
 }
 
-.content {
-    position: relative;
-    z-index: 2;
-    padding-bottom: 60px;
+.meteor {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 2px; /* 线条宽度 */
+    background: linear-gradient(to top, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.8)); /* 渐变模拟拖尾 */
+    transform-origin: bottom center; /* 以底部（圆心）为旋转轴 */
+    border-radius: 2px;
 }
 
-#calendar-countdown {
-    background-color: rgba(255, 255, 255, 0.4);
-    border-radius: 16px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    width: 280px;
-    overflow: hidden;
-    margin: 20px auto;
-    /* --- 修改：将明显的白色边框改为更细微的内嵌阴影，模拟玻璃边缘的暗部 --- */
-    border: none; /* 移除之前的边框 */
-    box-shadow: 0 0 1px rgba(0, 0, 0, 0.2) inset, 0 4px 15px rgba(0, 0, 0, 0.1);
+@keyframes spinMeteors {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
-.calendar-header {
-    background-color: rgba(217, 83, 79, 0.7);
-    color: white;
-    padding: 12px 0; /* 微调内边距 */
-    font-size: 22px; /* 微调字体大小以适应新文字 */
-    font-weight: bold;
-    text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.2);
-}
+/* SVG 容器 */
+.orbit-text-path { position: absolute; width: 70%; height: 70%; top: 15%; left: 15%; z-index: 2; }
+.orbit-text-path textPath { font-size: 16px; letter-spacing: 8px; text-transform: uppercase; fill: white; }
 
-.calendar-body {
-    /* --- 修改：调整内边距，使数字在没有“天”之后能更好地垂直居中 --- */
-    padding: 25px 10px 35px;
-    text-align: center;
-    color: #333;
-}
-
-#calendar-day-number {
-    display: block;
-    font-size: 140px;
+/* 中心数字样式 */
+#orbit-day-number {
+    position: relative; top: 32%;
+    font-size: clamp(90px, 7.3vw, 210px);
     font-weight: 700;
-    line-height: 1.1;
-    color: #2c3e50;
+    line-height: 1;
+    /* --- 应用 StarFont --- */
+    font-family: 'StarFont', 'Impact', sans-serif; 
+    color: white; 
+    text-shadow: 0 0 15px rgba(0,0,0,0.2);
+    z-index: 2;
 }
 
-/* ... 其他未变动的样式 ... */
-.dynamic-color { animation: colorChange 40s infinite; }
-@keyframes colorChange { 0%, 100% { color: #39C5BB; } 25% { color: #81ecec; } 50% { color: #74b9ff; } 75% { color: #a29bfe; } }
-.auto-color { color: black; transition: color 0.5s ease; }
-.network-error-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0, 0, 0, 0.8); color: white; padding: 15px 30px; border-radius: 8px; z-index: 100; opacity: 0; transition: opacity 0.5s ease-in-out; font-size: 18px; pointer-events: none; }
+/* 年份样式 */
+#orbit-year {
+    position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%);
+    font-size: clamp(16px, 1vw, 24px);
+    font-weight: bold;
+    /* 年份也使用 NumberFont */
+    font-family: 'NumberFont', sans-serif;
+    z-index: 2;
+}
+
+/* --- 新增：流星容器与样式 --- */
+.meteor-container {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0; 
+    /* 移除了旋转动画 spinMeteors */
+}
+
+.meteor {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 2px; /* 线条宽度 */
+    /* 调整渐变：从底部(内侧)全透明 -> 顶部(外侧)白色，模拟向外发射的光束 */
+    background: linear-gradient(to top, transparent 0%, rgba(255, 255, 255, 0.1) 20%, white 100%);
+    transform-origin: bottom center; /* 以底部（圆心）为轴 */
+    border-radius: 2px;
+    
+    /* 初始状态全透明 */
+    opacity: 0;
+    
+    /* 应用呼吸/闪烁动画 */
+    animation: meteorFadeInOut ease-in-out infinite;
+}
+
+/* 定义流星通过亮度变化模拟出现到消失的动画 */
+@keyframes meteorFadeInOut {
+    0% {
+        opacity: 0;
+        /* 可选：稍微拉长一点增加向外冲刺的感觉 */
+        transform: translate(-50%, -100%) rotate(var(--angle)) scaleY(0.9); 
+    }
+    50% {
+        /* 达到该流星随机设定的最大亮度 */
+        opacity: var(--max-opacity);
+        transform: translate(-50%, -100%) rotate(var(--angle)) scaleY(1.05);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -100%) rotate(var(--angle)) scaleY(1.1);
+    }
+}
+
+.hitokoto { font-size: clamp(16px, 1.15vw, 33px); margin-top: clamp(30px, 2.6vw, 75px); font-style: italic; font-family: 'HitokotoFont', "KaiTi", serif; transition: color 0.5s ease-in-out, text-shadow 0.5s ease-in-out; }
+footer { position: absolute; bottom: 0; width: 100%; padding: clamp(5px, 0.52vw, 15px); text-align: center; box-sizing: border-box; z-index: 2; }
+.dynamic-color { animation: colorChange 40s infinite; background-color: rgba(0, 0, 0, 0.05); padding: 0 clamp(2px, 0.1vw, 4px); border-radius: 4px;}
+@keyframes colorChange { /* JS Generated */ }
+.auto-color { color: black; transition: color 0.5s ease-in-out, text-shadow 0.5s ease-in-out; }
+.network-error-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0, 0, 0, 0.8); color: white; padding: clamp(10px, 0.78vw, 22px) clamp(20px, 1.56vw, 45px); border-radius: clamp(6px, 0.42vw, 12px); z-index: 100; opacity: 0; transition: opacity 0.5s ease-in-out; font-size: clamp(14px, 0.94vw, 27px); pointer-events: none; }

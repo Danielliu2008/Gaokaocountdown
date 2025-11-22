@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>高考倒计时</title>
+<link rel="stylesheet" href="gk.css"></link>
+<script src="quotes.js"></script>
+<script src="color-thief.umd.js"></script>
+<script src="gk.js"></script>
+</head>
+<body>
+    <div class="overlay"></div>
+    <div class="content">
+
+        <!-- 容器一：完整的时分秒倒计时 -->
+        <div id="full-countdown-container">
+            <h1 class="auto-color">距离 <span id="year" class="dynamic-color">0</span> 年高考还有 <span id="days" class="dynamic-color">0</span> 天</h1>
+            <h2 id="weeks-display" class="weeks-countdown auto-color">
+              也就是 <span id="weeks" class="dynamic-color">0</span> 周 <span id="remaining-days" class="dynamic-color">0</span> 天
+            </h2>
+            <div id="countdown" class="countdown auto-color">
+              <span id="hours" class="dynamic-color">00</span><span class="countdown-unit">时</span>
+              <span id="minutes" class="dynamic-color">00</span><span class="countdown-unit">分</span>
+              <span id="seconds" class="dynamic-color">00</span><span class="countdown-unit">秒</span>
+            </div>
+        </div>
+
+        <!-- 容器二：全新的“星轨”主题倒计时 -->
+        <div id="orbit-countdown" style="display: none;">
+            <!-- 新增：流星特效容器 -->
+            <div id="meteor-container" class="meteor-container"></div>
+            
+            <svg class="orbit-text-path" viewBox="0 0 300 300">
+                <path id="curve" d="M 50,150 A 100,100 0 1,1 250,150" fill="transparent" />
+                <text width="500">
+                    <textPath xlink:href="#curve" class="auto-color" startOffset="50%" text-anchor="middle">
+                        距 离 高 考
+                    </textPath>
+                </text>
+            </svg>
+            <div id="orbit-day-number">0</div>
+            <div id="orbit-year" class="auto-color">0</div>
+        </div>
+
+        <!-- 通用部分 -->
+        <div id="greeting" class="greeting auto-color"></div>
+        <div id="hitokoto" class="hitokoto auto-color">憧憬是距离理解最遥远的感情。 -- BLEACH</div>
+    </div>
+    <footer></footer>
+</body>
+</html>
