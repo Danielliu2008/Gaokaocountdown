@@ -338,7 +338,7 @@ function initMeteorEffect() {
     const container = document.getElementById('meteor-container');
     if (!container) return;
     container.innerHTML = '';
-    const count = Math.floor(Math.random() * 121) + 100;
+    const count = Math.floor(Math.random() * 121) + 150;
     
     for (let i = 0; i < count; i++) {
         const m = document.createElement('div');
