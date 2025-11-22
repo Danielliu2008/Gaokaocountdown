@@ -1,208 +1,473 @@
-// =================================================================
-// 壁纸自定义设置
-// =================================================================
-const enable_local_wallpaper = false;
-const local_wallpaper_path = 'wallpaper.jpg';
+// gk.js — 最终重构版 (支持独立样式/动画/脚本)
 
+// =============================================================================
+// 1. 全局配置与状态
+// =============================================================================
+const CONFIG = {
+    enableLocalWallpaper: true,   // 开关：本地/网络
+    wallpaperMode: 'time',        // 模式：'time' (时间匹配) | 'random' (全局随机)
+    currentTheme: 'default',      // 主题：对应 index.json 中的 key
+    refreshInterval: 20 * 60000,  // 刷新间隔 (20分钟)
+    useDynamicColor: true,        // 是否启用自动颜色提取 (当 json 未指定 style 时)
+    countdownMode: 'days'         // 倒计时模式
+};
 
-// 选择启用动态取色功能或自动颜色调整
-const useDynamicColor = true;
+// 运行时状态
+const STATE = {
+    serverTimeOffset: null,
+    wallpaperConfig: null,
+    isConfigLoading: false,
+    currentImageConfig: null, // 当前壁纸的完整配置对象
+    dynamicStyleSheet: null,  // 用于 ColorThief 的动态样式表
+    themeStyleTag: null,      // 用于主题 baseCss 的 link 标签
+    currentScriptTag: null,   // 用于当前壁纸 script 的 script 标签
+    retryTimer: null,
+    quotes: { data: [], index: 0 }
+};
 
-// 时间请求相关全局变量
-let serverTimeOffset = null;
-let retryIntervalId = null;
+// 缓存颜色 (默认值)
+let CachedColorStyle = {
+    lightText: "rgba(255,255,255,0.95)",
+    darkText: "rgba(0,0,0,0.85)",
+    useLight: true,
+    isManual: false // 标记是否是手动指定了颜色
+};
 
-// 一言动画相关全局变量
-let isHitokotoAnimating = false;
-const HITOKOTO_REFRESH_ALLOW = false;
-const HITOKOTO_REFRESH_INTERVAL = 30000;
-const TYPING_SPEED_MS = 100;
-const DELETING_SPEED_MS = 50;
+// =============================================================================
+// 2. 核心管线：配置加载 -> 壁纸选择 -> 资源加载 -> 样式应用
+// =============================================================================
 
-// 网络错误处理相关全局变量
-let hasWallpaperErrorOccurred = false;
+// 2.1 加载配置
+async function loadThemeConfig() {
+    if (STATE.wallpaperConfig) return STATE.wallpaperConfig;
+    if (STATE.isConfigLoading) return null;
+    STATE.isConfigLoading = true;
 
+    try {
+        const indexRes = await fetch('wallpaper/index.json');
+        const indexData = await indexRes.json();
+        const themeFolder = indexData.themes[CONFIG.currentTheme];
+        if (!themeFolder) throw new Error(`主题未找到: ${CONFIG.currentTheme}`);
 
-// =================================================================
-// 错误处理与壁纸切换 (现在仅用于壁纸加载失败)
-// =================================================================
-function showWallpaperErrorAndSwitchToLocal() {
-    // 如果错误已处理过，则不再执行
-    if (hasWallpaperErrorOccurred) return;
-    
-    hasWallpaperErrorOccurred = true;
+        const themeRes = await fetch(`wallpaper/${themeFolder}/theme.json`);
+        const themeData = await themeRes.json();
 
-    // 创建并显示错误提示
-    const errorPopup = document.createElement('div');
-    errorPopup.className = 'network-error-popup';
-    errorPopup.innerText = '网络错误';
-    document.body.appendChild(errorPopup);
+        STATE.wallpaperConfig = {
+            basePath: `wallpaper/${themeFolder}`,
+            ...themeData
+        };
 
-    setTimeout(() => {
-        errorPopup.style.opacity = '1';
-    }, 10);
-
-    setTimeout(() => {
-        errorPopup.style.opacity = '0';
-        setTimeout(() => {
-            errorPopup.remove();
-        }, 500);
-    }, 3000);
-
-    // 切换到本地壁纸
-    console.log("在线壁纸加载失败，切换至本地壁纸。");
-    setWallpaper(true); // 强制使用本地壁纸
-}
-
-function setWallpaper(forceLocal = false) {
-    const useLocal = enable_local_wallpaper || forceLocal;
-    const imageUrl = useLocal ? local_wallpaper_path : 'https://api.paugram.com/bing';
-
-    document.body.style.backgroundImage = `url('${imageUrl}')`;
-    
-    if (useDynamicColor) {
-        setupDynamicColorAnimation(imageUrl, useLocal);
-    } else {
-        setAutoColor();
-    }
-}
-
-
-// =================================================================
-// 时间处理逻辑
-// =================================================================
-function fetchServerTime() {
-    if (retryIntervalId) {
-        clearInterval(retryIntervalId);
-        retryIntervalId = null;
-    }
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'https://worldtimeapi.org/api/timezone/Asia/Shanghai', true);
-    xhr.onload = function() {
-        if (xhr.status >= 200 && xhr.status < 300) {
-            var response = JSON.parse(xhr.responseText);
-            var serverTime = new Date(response.utc_datetime);
-            var localTime = new Date();
-            serverTimeOffset = serverTime.getTime() - localTime.getTime();
-            console.log("成功获取服务器时间。与本地时间差为: " + serverTimeOffset + "ms");
-            if (retryIntervalId) {
-                clearInterval(retryIntervalId);
-                retryIntervalId = null;
-            }
-        } else {
-            console.error('获取服务器时间失败，状态码: ' + xhr.status);
-            // MODIFIED: 不再调用全局错误提示，而是直接启动自己的备用机制
-            startRetryMechanism();
+        // 如果主题定义了通用 CSS，加载它
+        if (STATE.wallpaperConfig.baseCss) {
+            loadThemeCss(`${STATE.wallpaperConfig.basePath}/${STATE.wallpaperConfig.baseCss}`);
         }
-    };
-    xhr.onerror = function() {
-        console.error('网络错误，无法获取服务器时间。');
-        // MODIFIED: 不再调用全局错误提示，而是直接启动自己的备用机制
-        startRetryMechanism();
-    };
-    xhr.send();
+
+        console.log(`主题 [${CONFIG.currentTheme}] 加载成功`);
+        return STATE.wallpaperConfig;
+    } catch (e) {
+        console.error("配置加载失败:", e);
+        return null;
+    } finally {
+        STATE.isConfigLoading = false;
+    }
 }
 
-function startRetryMechanism() { if (retryIntervalId === null) { console.log("启动备用方案：使用本地时间，并在后台每3秒尝试重新获取服务器时间。"); retryIntervalId = setInterval(fetchServerTime, 3000); } }
-function padZero(num) { return num < 10 ? '0' + num : num; }
-function updateCountdown() { let now = serverTimeOffset !== null ? new Date(new Date().getTime() + serverTimeOffset) : new Date(); var currentYear = now.getFullYear(); var examDateStart = new Date(currentYear, 5, 7); var examDateEnd = new Date(currentYear, 5, 9, 18, 0, 0); var nextYearExamDate = new Date(currentYear + 1, 5, 7); var weeksDisplay = document.getElementById("weeks-display"); if (now >= examDateStart && now <= examDateEnd) { document.getElementById("countdown").style.display = "none"; weeksDisplay.style.display = "none"; document.getElementById("greeting").style.display = "block"; document.getElementById("greeting").innerText = "今年的高考进行中，祝考试的同学们旗开得胜，金榜题名！"; } else { document.getElementById("greeting").style.display = "none"; document.getElementById("countdown").style.display = "block"; weeksDisplay.style.display = "block"; var timeDiff = examDateStart - now; if (now > examDateEnd) { timeDiff = nextYearExamDate - now; currentYear++; } var days = Math.floor(timeDiff / (1000 * 60 * 60 * 24)); var weeks = Math.floor(days / 7); var remainingDays = days % 7; var hours = padZero(Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))); var minutes = padZero(Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60))); var seconds = padZero(Math.floor((timeDiff % (1000 * 60)) / 1000)); document.getElementById("days").innerText = days; document.getElementById("weeks").innerText = weeks; document.getElementById("remaining-days").innerText = remainingDays; document.getElementById("hours").innerText = hours; document.getElementById("minutes").innerText = minutes; document.getElementById("seconds").innerText = seconds; document.getElementById("year").innerText = currentYear; } }
+// 2.2 辅助：加载主题 CSS
+function loadThemeCss(url) {
+    if (STATE.themeStyleTag) STATE.themeStyleTag.remove();
+    STATE.themeStyleTag = document.createElement('link');
+    STATE.themeStyleTag.rel = 'stylesheet';
+    STATE.themeStyleTag.href = url;
+    document.head.appendChild(STATE.themeStyleTag);
+}
 
-// =================================================================
-// 一言（Hitokoto）动画逻辑 (无变动)
-// =================================================================
-function typeEffect(element, text, callback) { let index = 0; element.innerText = ''; let intervalId = setInterval(() => { if (index < text.length) { element.innerText += text.charAt(index); index++; } else { clearInterval(intervalId); if (callback) callback(); } }, TYPING_SPEED_MS); }
-function deleteEffect(element, callback) { let text = element.innerText; let intervalId = setInterval(() => { if (text.length > 0) { text = text.substring(0, text.length - 1); element.innerText = text; } else { clearInterval(intervalId); if (callback) callback(); } }, DELETING_SPEED_MS); }
-function updateHitokotoWithAnimation(isInitialLoad = false) {
-  if (isHitokotoAnimating) return;
-  isHitokotoAnimating = true;
-  const hitokotoElement = document.getElementById("hitokoto");
-  const fetchAndDisplay = () => {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'https://v1.hitokoto.cn/?c=l&c=k&c=j&c=i', true);
-    xhr.onload = function() {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        var response = JSON.parse(xhr.responseText);
-        const newHitokoto = `${response.hitokoto} -- ${response.from}`;
-        typeEffect(hitokotoElement, newHitokoto, () => {
-          hitokotoElement.style.height = '';
-          isHitokotoAnimating = false;
+// 2.3 选择壁纸
+async function selectWallpaper() {
+    const config = await loadThemeConfig();
+    if (!config) return null;
+
+    let candidates = [];
+
+    if (CONFIG.wallpaperMode === 'random') {
+        // 收集所有图片
+        config.schedule.forEach(rule => {
+            if (rule.images) rule.images.forEach(img => candidates.push({ ...img, folder: rule.folder }));
         });
-      } else {
-        console.error('获取一言失败:', xhr.status);
-        hitokotoElement.style.height = '';
-        isHitokotoAnimating = false;
-      }
+    } else {
+        // 按时间匹配
+        const hour = new Date().getHours();
+        let matchedRule = config.schedule.find(rule => 
+            (rule.start > rule.end) ? (hour >= rule.start || hour < rule.end) : (hour >= rule.start && hour < rule.end)
+        ) || config.schedule[0];
+
+        if (matchedRule && matchedRule.images) {
+            candidates = matchedRule.images.map(img => ({ ...img, folder: matchedRule.folder }));
+        }
+    }
+
+    if (candidates.length === 0) return null;
+    
+    // 随机抽取
+    const selection = candidates[Math.floor(Math.random() * candidates.length)];
+    
+    // 构建完整 URL
+    let fullPath = config.basePath;
+    if (selection.folder) fullPath += `/${selection.folder}`;
+    fullPath += `/${selection.file}`;
+
+    return { url: fullPath, config: selection };
+}
+
+// 2.4 更新壁纸主逻辑
+async function updateWallpaper() {
+    let wallpaperData = null;
+    const img = new Image();
+    
+    // 获取壁纸信息
+    if (CONFIG.enableLocalWallpaper) {
+        wallpaperData = await selectWallpaper();
+    }
+
+    // 降级处理：如果没有本地壁纸，使用 Bing
+    let imageUrl = wallpaperData ? wallpaperData.url : `https://api.paugram.com/bing?${Date.now()}`;
+    // 只有网络图片才加 crossOrigin
+    if (!wallpaperData) img.crossOrigin = "Anonymous";
+
+    console.log(`切换壁纸: ${imageUrl}`);
+
+    img.onload = async () => {
+        // 1. 等待解码 (关键性能优化)
+        if ('decode' in img) await img.decode().catch(() => {});
+
+        // 2. 应用样式与特效 (核心重构点)
+        applyWallpaperEffects(img, wallpaperData ? wallpaperData.config : null);
+
+        // 3. 设置背景
+        document.body.style.backgroundImage = `url('${imageUrl}')`;
     };
-    xhr.onerror = function() {
-      console.error('网络错误，无法获取一言。');
-      hitokotoElement.style.height = '';
-      isHitokotoAnimating = false;
+
+    img.src = imageUrl;
+}
+
+// =============================================================================
+// 3. 样式与特效管理器 (核心逻辑)
+// =============================================================================
+
+function applyWallpaperEffects(imgElement, imgConfig) {
+    // 3.1 重置旧状态
+    document.body.className = ''; // 清除之前的 class
+    if (STATE.currentScriptTag) { // 移除旧脚本
+        STATE.currentScriptTag.remove();
+        STATE.currentScriptTag = null;
+    }
+    
+    // 3.2 判定是否手动指定了样式
+    const manualStyle = imgConfig && imgConfig.style;
+    STATE.currentImageConfig = imgConfig;
+    CachedColorStyle.isManual = !!manualStyle;
+
+    if (manualStyle) {
+        // --- 模式 A: 手动样式 (优先) ---
+        console.log("应用自定义样式配置");
+        // 将手动配置转为 CachedColorStyle 格式，方便 unify 接口
+        CachedColorStyle.useLight = true; // 默认，具体看 style.color
+        CachedColorStyle.lightText = manualStyle.color || "white";
+        CachedColorStyle.darkText = manualStyle.color || "black";
+        
+        // 移除可能的自动颜色动画
+        if (STATE.dynamicStyleSheet) STATE.dynamicStyleSheet.innerText = '';
+        
+        // 如果配置了 textShadow，在这里生成一个临时的 CSS class 或者直接应用
+        // 为了简单，我们依赖 updateAutoColorElements 读取 CachedColorStyle
+        // 但 manualStyle 可能很复杂，我们直接通过 CSS 变量或内联样式处理会更灵活
+        // 这里采用：将 manualStyle 存入 CSS 变量，CSS 中使用 var
+        document.documentElement.style.setProperty('--custom-color', manualStyle.color || 'inherit');
+        document.documentElement.style.setProperty('--custom-shadow', manualStyle.textShadow || 'none');
+        
+    } else {
+        // --- 模式 B: 自动颜色提取 (ColorThief / Canvas) ---
+        document.documentElement.style.removeProperty('--custom-color');
+        document.documentElement.style.removeProperty('--custom-shadow');
+        
+        if (CONFIG.useDynamicColor) {
+            runColorThief(imgElement);
+        } else {
+            runCanvasAnalysis(imgElement);
+        }
+    }
+
+    // 3.3 应用 CSS Class (动画)
+    if (imgConfig && imgConfig.class) {
+        document.body.classList.add(imgConfig.class);
+        console.log(`应用动画 Class: ${imgConfig.class}`);
+    }
+
+    // 3.4 加载独立脚本
+    if (imgConfig && imgConfig.script) {
+        loadCustomScript(`${STATE.wallpaperConfig.basePath}/${imgConfig.script}`);
+    }
+
+    // 3.5 刷新 DOM 元素颜色
+    updateAutoColorElements();
+}
+
+function loadCustomScript(url) {
+    const script = document.createElement('script');
+    script.src = url;
+    script.onload = () => console.log(`已加载独立特效: ${url}`);
+    document.body.appendChild(script);
+    STATE.currentScriptTag = script;
+}
+
+// =============================================================================
+// 4. 颜色算法 (ColorThief / Canvas)
+// =============================================================================
+
+function runColorThief(img) {
+    try {
+        if (typeof ColorThief === 'undefined') throw new Error("No ColorThief");
+        const colorThief = new ColorThief();
+        const palette = colorThief.getPalette(img, 5);
+        if (palette && palette.length > 0) {
+            generateDynamicKeyframes(palette);
+        }
+        // 即使生成了流光动画，也需要计算一个基础亮度，决定背景是深是浅
+        runCanvasAnalysis(img); 
+    } catch (e) {
+        runCanvasAnalysis(img); // 降级
+    }
+}
+
+function runCanvasAnalysis(img) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 10; canvas.height = 10;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    
+    try {
+        ctx.drawImage(img, 0, 0, 10, 10);
+        const data = ctx.getImageData(0, 0, 10, 10).data;
+        
+        let totalYIQ = 0, count = 0, isTransparent = true;
+        for (let i = 0; i < data.length; i += 4) {
+            if (data[i + 3] > 0) isTransparent = false;
+            totalYIQ += (data[i]*299 + data[i+1]*587 + data[i+2]*114) / 1000;
+            count++;
+        }
+
+        if (isTransparent || count === 0) throw new Error("Canvas empty");
+        
+        const avgYIQ = totalYIQ / count;
+        CachedColorStyle.useLight = avgYIQ < 128; // 暗背景->亮字
+        
+        // 如果不是手动模式，才更新文字颜色缓存
+        if (!CachedColorStyle.isManual) {
+            CachedColorStyle.lightText = "rgba(255,255,255,0.95)";
+            CachedColorStyle.darkText = "rgba(0,0,0,0.85)";
+        }
+
+    } catch (e) {
+        // 出错回退
+        if (!CachedColorStyle.isManual) {
+            CachedColorStyle.useLight = true;
+            CachedColorStyle.lightText = "white";
+        }
+    }
+}
+
+function generateDynamicKeyframes(palette) {
+    // 只有在非手动模式下才应用流光动画
+    if (CachedColorStyle.isManual) return;
+
+    const stops = [0, 25, 50, 75, 100];
+    let content = '';
+    const count = Math.min(4, palette.length);
+
+    for (let i = 0; i < count; i++) {
+        const [r, g, b] = palette[i];
+        const yiq = (r*299 + g*587 + b*114) / 1000;
+        // 智能调整阴影浓度
+        const opacity = 0.8 - (yiq / 255) * 0.7; 
+        const blur = 8 - (yiq / 255) * 4;
+        const shadow = `0 0 ${blur.toFixed(1)}px rgba(255,255,255,${opacity.toFixed(2)})`;
+        
+        content += `${stops[i]}% { color: rgb(${r},${g},${b}); text-shadow: ${shadow}; } `;
+        if (i===0) content += `100% { color: rgb(${r},${g},${b}); text-shadow: ${shadow}; } `;
+    }
+
+    if (!STATE.dynamicStyleSheet) {
+        STATE.dynamicStyleSheet = document.createElement("style");
+        document.head.appendChild(STATE.dynamicStyleSheet);
+    }
+    STATE.dynamicStyleSheet.innerText = `@keyframes colorChange { ${content} }`;
+}
+
+// 更新 DOM 元素的颜色
+function updateAutoColorElements() {
+    const elements = document.querySelectorAll('.auto-color');
+    elements.forEach(el => {
+        // 1. 如果是手动模式，使用 CSS 变量
+        if (CachedColorStyle.isManual) {
+            el.style.animation = 'none'; // 停止流光动画
+            el.style.color = 'var(--custom-color)';
+            el.style.textShadow = 'var(--custom-shadow)';
+        } 
+        // 2. 如果是自动模式
+        else {
+            el.style.removeProperty('color');
+            el.style.removeProperty('text-shadow');
+            
+            // 恢复流光动画 (如果存在)
+            if (STATE.dynamicStyleSheet && STATE.dynamicStyleSheet.innerText !== '') {
+                el.style.animation = 'colorChange 40s infinite';
+            } else {
+                // 没有流光，使用静态 Canvas 颜色
+                el.style.animation = 'none';
+                el.style.color = CachedColorStyle.useLight ? CachedColorStyle.lightText : CachedColorStyle.darkText;
+                el.style.textShadow = CachedColorStyle.useLight ? '0px 1px 3px rgba(0,0,0,0.6)' : '0px 1px 2px rgba(255,255,255,0.8)';
+            }
+        }
+    });
+}
+
+// =============================================================================
+// 5. 倒计时、语录、流星 (辅助功能)
+// =============================================================================
+
+// 流星特效
+function initMeteorEffect() {
+    const container = document.getElementById('meteor-container');
+    if (!container) return;
+    container.innerHTML = '';
+    const count = Math.floor(Math.random() * 121) + 100;
+    
+    for (let i = 0; i < count; i++) {
+        const m = document.createElement('div');
+        m.className = 'meteor';
+        const angle = Math.random() * 360;
+        const len = 10 + Math.random() * 35;
+        const dur = 0.8 + Math.random() * 6.2;
+        const op = 0.3 + Math.random() * 0.5;
+        
+        m.style.height = `${28 + len}%`;
+        m.style.width = `${1 + Math.random() * 2}px`;
+        m.style.setProperty('--angle', `${angle}deg`);
+        m.style.setProperty('--max-opacity', op);
+        m.style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
+        m.style.animation = `meteorFadeInOut ${dur}s infinite ease-in-out`;
+        m.style.animationDelay = `-${Math.random() * 10}s`;
+        
+        const tp = (28 / (28 + len)) * 100;
+        m.style.background = `linear-gradient(to top, transparent ${tp}%, rgba(255,255,255,${op}) ${tp+15}%, rgba(255,255,255,${op}) 100%)`;
+        container.appendChild(m);
+    }
+}
+
+// 语录
+async function updateHitokoto(isInit) {
+    const el = document.getElementById("hitokoto");
+    if (!el) return;
+    
+    // 加载数据
+    if (STATE.quotes.data.length === 0) {
+        if (typeof localQuotesData !== 'undefined') {
+            STATE.quotes.data = [...localQuotesData].sort(() => Math.random() - 0.5);
+        } else {
+            return;
+        }
+    }
+    
+    const item = STATE.quotes.data[STATE.quotes.index++ % STATE.quotes.data.length];
+    const text = `${item.hitokoto} -- ${item.from || '佚名'}`;
+    
+    // 动画打字
+    const type = (str) => {
+        let i = 0; el.innerText = '';
+        const timer = setInterval(() => {
+            el.innerText += str.charAt(i++);
+            if (i >= str.length) {
+                clearInterval(timer);
+                updateAutoColorElements(); // 确保新字应用样式
+            }
+        }, 100);
+    };
+
+    if (isInit) {
+        type(text);
+    } else {
+        // 删除动画模拟
+        let old = el.innerText;
+        const delTimer = setInterval(() => {
+            if (old.length > 0) {
+                old = old.slice(0, -1);
+                el.innerText = old;
+            } else {
+                clearInterval(delTimer);
+                type(text);
+            }
+        }, 30);
+    }
+}
+
+// 倒计时与时间
+function syncTime() {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://worldtimeapi.org/api/timezone/Asia/Shanghai', true);
+    xhr.onload = () => {
+        if (xhr.status === 200) {
+            try {
+                STATE.serverTimeOffset = new Date(JSON.parse(xhr.responseText).utc_datetime).getTime() - Date.now();
+                if (STATE.retryTimer) clearInterval(STATE.retryTimer);
+            } catch(e) {}
+        }
     };
     xhr.send();
-  };
-  if (isInitialLoad) {
-    fetchAndDisplay();
-  } else {
-    const currentHeight = hitokotoElement.offsetHeight;
-    hitokotoElement.style.height = `${currentHeight}px`;
-    deleteEffect(hitokotoElement, fetchAndDisplay);
-  }
 }
 
-
-// =================================================================
-// 颜色处理逻辑
-// =================================================================
-function setupDynamicColorAnimation(imageUrl, isLocal = false) {
-    const tempImage = new Image();
-    // 只有在线图片才需要设置跨域属性
-    if (!isLocal) {
-        tempImage.crossOrigin = 'Anonymous';
+function updateCountdown() {
+    const now = new Date(Date.now() + (STATE.serverTimeOffset || 0));
+    const year = now.getFullYear();
+    // 示例高考日期：6月7日
+    let target = new Date(year, 5, 7);
+    if (now > new Date(year, 5, 9, 18, 0, 0)) target = new Date(year + 1, 5, 7);
+    
+    const diff = target - now;
+    const days = Math.ceil(diff / 86400000);
+    
+    // 仅展示 orbit 模式
+    const orbitContainer = document.getElementById("orbit-countdown");
+    const fullContainer = document.getElementById("full-countdown-container");
+    const greeting = document.getElementById("greeting");
+    
+    if (now.getMonth() === 5 && now.getDate() >= 7 && now.getDate() <= 9) {
+        orbitContainer.style.display = 'none';
+        fullContainer.style.display = 'none';
+        greeting.style.display = 'block';
+        greeting.innerText = "高考进行中，加油！";
+    } else {
+        greeting.style.display = 'none';
+        orbitContainer.style.display = 'block';
+        fullContainer.style.display = 'none';
+        
+        document.getElementById("orbit-day-number").innerText = days;
+        document.getElementById("orbit-year").innerText = target.getFullYear();
     }
-    tempImage.onload = () => {
-        try {
-            const colorThief = new ColorThief();
-            const palette = colorThief.getPalette(tempImage, 5);
-            if (palette && palette.length >= 4) {
-                const colors = palette.slice(0, 4).map(rgb => `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`);
-                const keyframes = ` @keyframes colorChange { 0%, 100% { color: ${colors[0]}; } 25% { color: ${colors[1]}; } 50% { color: ${colors[2]}; } 75% { color: ${colors[3]}; } } `;
-                const styleSheet = document.createElement("style");
-                styleSheet.innerText = keyframes;
-                document.head.appendChild(styleSheet);
-                console.log("成功从背景图中提取颜色并应用新动画:", colors);
-            }
-        } catch (error) {
-            console.error("颜色提取失败，将使用CSS中定义的备用动画:", error);
-        }
-    };
-    tempImage.onerror = () => {
-        console.error("无法加载背景图片进行颜色分析:", imageUrl);
-        // MODIFIED: 只在加载在线壁纸失败时，才触发错误提示和切换逻辑
-        if (!isLocal) {
-            showWallpaperErrorAndSwitchToLocal();
-        }
-    };
-    tempImage.src = imageUrl;
 }
-function setAutoColor() { const elements = document.querySelectorAll('.auto-color'); elements.forEach(el => { const rgb = getAverageRGB(document.body); const yiq = ((rgb.r * 299) + (rgb.g * 587) + (rgb.b * 114)) / 1000; el.style.color = (yiq >= 128) ? 'black' : 'white'; }); }
-function getAverageRGB(imgEl) { var blockSize = 5, defaultRGB = {r:255,g:255,b:255}, canvas = document.createElement('canvas'), context = canvas.getContext && canvas.getContext('2d'), data, width, height, i = -4, length, rgb = {r:0,g:0,b:0}, count = 0; if (!context) { return defaultRGB; } height = canvas.height = imgEl.naturalHeight || imgEl.offsetHeight || imgEl.height; width = canvas.width = imgEl.naturalWidth || imgEl.offsetWidth || imgEl.width; try { context.drawImage(imgEl, 0, 0); data = context.getImageData(0, 0, width, height); } catch(e) { return defaultRGB; } length = data.data.length; while ( (i += blockSize * 4) < length ) { ++count; rgb.r += data.data[i]; rgb.g += data.data[i+1]; rgb.b += data.data[i+2]; } rgb.r = ~~(rgb.r/count); rgb.g = ~~(rgb.g/count); rgb.b = ~~(rgb.b/count); return rgb; }
 
-// =================================================================
-// 页面加载完成后的主执行函数 (无变动)
-// =================================================================
+// =============================================================================
+// 6. 初始化
+// =============================================================================
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. 壁纸与动态颜色初始化
-    setWallpaper();
-
-    // 2. 时间倒计时初始化
-    fetchServerTime();
+    // 启动核心循环
+    updateWallpaper();
+    setInterval(updateWallpaper, CONFIG.refreshInterval);
+    
+    // 启动时间与倒计时
+    syncTime();
+    STATE.retryTimer = setInterval(syncTime, 300000); // 5分钟校准
     setInterval(updateCountdown, 1000);
-    // 每5分钟(300000毫秒)重新获取一次服务器时间进行校准
-    setInterval(fetchServerTime, 300000);
-
-    // 3. 一言初始化及定时刷新
-    updateHitokotoWithAnimation(true);
-    if (HITOKOTO_REFRESH_ALLOW) {
-        setInterval(() => updateHitokotoWithAnimation(false), HITOKOTO_REFRESH_INTERVAL);
-    };
+    
+    // 启动特效
+    initMeteorEffect();
+    updateHitokoto(true);
+    setInterval(() => updateHitokoto(false), 30000);
 });
