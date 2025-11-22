@@ -2,15 +2,18 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>高考倒计时</title>
 <link rel="stylesheet" href="gk.css"></link>
+<script src="quotes.js"></script>
 <script src="color-thief.umd.js"></script>
 <script src="gk.js"></script>
 </head>
 <body>
     <div class="overlay"></div>
     <div class="content">
-        <!-- 容器一：完整的时分秒倒计时 (无变动) -->
+
+        <!-- 容器一：完整的时分秒倒计时 -->
         <div id="full-countdown-container">
             <h1 class="auto-color">距离 <span id="year" class="dynamic-color">0</span> 年高考还有 <span id="days" class="dynamic-color">0</span> 天</h1>
             <h2 id="weeks-display" class="weeks-countdown auto-color">
@@ -23,16 +26,21 @@
             </div>
         </div>
 
-        <!-- 容器二：精确到天的日历样式倒计时 -->
-        <div id="calendar-countdown" style="display: none;">
-            <!-- 修改：直接将标题写在这里 -->
-            <div class="calendar-header">
-                🚀 高考加油！
-            </div>
-            <div class="calendar-body">
-                <span id="calendar-day-number">0</span>
-                <!-- 已删除：原来的“天”单位 <span id="calendar-day-unit">天</span> -->
-            </div>
+        <!-- 容器二：全新的“星轨”主题倒计时 -->
+        <div id="orbit-countdown" style="display: none;">
+            <!-- 新增：流星特效容器 -->
+            <div id="meteor-container" class="meteor-container"></div>
+            
+            <svg class="orbit-text-path" viewBox="0 0 300 300">
+                <path id="curve" d="M 50,150 A 100,100 0 1,1 250,150" fill="transparent" />
+                <text width="500">
+                    <textPath xlink:href="#curve" class="auto-color" startOffset="50%" text-anchor="middle">
+                        距 离 高 考
+                    </textPath>
+                </text>
+            </svg>
+            <div id="orbit-day-number">0</div>
+            <div id="orbit-year" class="auto-color">0</div>
         </div>
 
         <!-- 通用部分 -->
