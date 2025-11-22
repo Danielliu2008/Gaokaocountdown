@@ -22,8 +22,31 @@
 }
 
 body { font-family: 'Arial', sans-serif; text-align: center; margin: 0; padding: 0; height: 100vh; display: flex; justify-content: center; align-items: center; background-image: url('https://api.paugram.com/bing'); background-size: cover; background-position: center; background-repeat: no-repeat; position: relative; overflow: hidden; }
-.overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.15); }
-.content { position: relative; z-index: 2; padding-bottom: clamp(30px, 3.125vw, 90px); width: 90%; max-width: 1400px; display: flex; flex-direction: column; align-items: center; }
+.overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.15); z-index: 2; }
+.content { position: relative; z-index: 5; padding-bottom: clamp(30px, 3.125vw, 90px); width: 90%; max-width: 1400px; display: flex; flex-direction: column; align-items: center; }
+
+#wallpaper-layers {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0; /* 最底层 */
+    overflow: hidden;
+    pointer-events: none; /* 让点击穿透到背景 */
+}
+
+/* 2. 单个图层样式 */
+.wp-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* 确保统一分辨率铺满，无需手动定位 */
+    transition: opacity 1s ease-in-out; /* 淡入淡出效果 */
+}
+
 
 /* --- 精确模式字体应用 --- */
 /* 应用 NumberFont 到所有倒计时数字 */
@@ -165,7 +188,7 @@ h1 { font-size: clamp(24px, 1.875vw, 54px); margin-bottom: clamp(5px, 0.52vw, 15
 }
 
 .hitokoto { font-size: clamp(16px, 1.15vw, 33px); margin-top: clamp(30px, 2.6vw, 75px); font-style: italic; font-family: 'HitokotoFont', "KaiTi", serif; transition: color 0.5s ease-in-out, text-shadow 0.5s ease-in-out; }
-footer { position: absolute; bottom: 0; width: 100%; padding: clamp(5px, 0.52vw, 15px); text-align: center; box-sizing: border-box; z-index: 2; }
+footer { position: absolute; bottom: 0; width: 100%; padding: clamp(5px, 0.52vw, 15px); text-align: center; box-sizing: border-box; z-index: 5; }
 .dynamic-color { animation: colorChange 40s infinite; background-color: rgba(0, 0, 0, 0.05); padding: 0 clamp(2px, 0.1vw, 4px); border-radius: 4px;}
 @keyframes colorChange { /* JS Generated */ }
 .auto-color { color: black; transition: color 0.5s ease-in-out, text-shadow 0.5s ease-in-out; }

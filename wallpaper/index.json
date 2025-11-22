@@ -1,7 +1,8 @@
 {
-  "themes": {
-    "default": "default", 
-    "anime_mix": "anime",
-    "scenery": "my_scenery_folder"
+  "active": "depth_pro", 
+  "list": {
+    "default": "themes/default",
+    "depth_pro": "themes/depth_pro",
+    "anime": "themes/anime_collection"
   }
 }

@@ -87,66 +87,142 @@ async function selectWallpaper() {
     if (!config) return null;
 
     let candidates = [];
-
+    // ... (收集 candidates 逻辑保持不变) ...
     if (CONFIG.wallpaperMode === 'random') {
-        // 收集所有图片
         config.schedule.forEach(rule => {
             if (rule.images) rule.images.forEach(img => candidates.push({ ...img, folder: rule.folder }));
         });
     } else {
-        // 按时间匹配
         const hour = new Date().getHours();
         let matchedRule = config.schedule.find(rule => 
             (rule.start > rule.end) ? (hour >= rule.start || hour < rule.end) : (hour >= rule.start && hour < rule.end)
         ) || config.schedule[0];
-
         if (matchedRule && matchedRule.images) {
             candidates = matchedRule.images.map(img => ({ ...img, folder: matchedRule.folder }));
         }
     }
 
     if (candidates.length === 0) return null;
-    
-    // 随机抽取
     const selection = candidates[Math.floor(Math.random() * candidates.length)];
     
-    // 构建完整 URL
-    let fullPath = config.basePath;
-    if (selection.folder) fullPath += `/${selection.folder}`;
-    fullPath += `/${selection.file}`;
-
-    return { url: fullPath, config: selection };
+    // 构建 base 路径，不包含文件名，方便多层拼接
+    let urlBase = config.basePath;
+    if (selection.folder) urlBase += `/${selection.folder}`;
+    
+    return { urlBase: urlBase, config: selection };
 }
 
 // 2.4 更新壁纸主逻辑
 async function updateWallpaper() {
-    let wallpaperData = null;
-    const img = new Image();
+    let selection = null;
     
-    // 获取壁纸信息
+    // 1. 获取壁纸配置
     if (CONFIG.enableLocalWallpaper) {
-        wallpaperData = await selectWallpaper();
+        selection = await selectWallpaper(); // 使用之前的选择逻辑
     }
 
-    // 降级处理：如果没有本地壁纸，使用 Bing
-    let imageUrl = wallpaperData ? wallpaperData.url : `https://api.paugram.com/bing?${Date.now()}`;
-    // 只有网络图片才加 crossOrigin
-    if (!wallpaperData) img.crossOrigin = "Anonymous";
+    // 2. 准备图层数据
+    // 统一格式：无论是单图还是多层，都转化为数组处理
+    let layersToRender = [];
+    let baseImageUrl = ''; // 用于 ColorThief 取色
+    let isMultiLayer = false;
 
-    console.log(`切换壁纸: ${imageUrl}`);
+    if (selection && selection.config.layers) {
+        // --- 模式 A: 多层模式 ---
+        isMultiLayer = true;
+        // 构建路径
+        layersToRender = selection.config.layers.map(layer => ({
+            src: `${selection.urlBase}/${layer.file}`,
+            z: layer.z
+        }));
+        
+        // 找到 z-index 最小的层作为取色基准
+        const bgLayer = layersToRender.reduce((prev, curr) => (prev.z < curr.z ? prev : curr));
+        baseImageUrl = bgLayer.src;
 
-    img.onload = async () => {
-        // 1. 等待解码 (关键性能优化)
-        if ('decode' in img) await img.decode().catch(() => {});
+    } else if (selection) {
+        // --- 模式 B: 单图模式 (本地) ---
+        const fullPath = `${selection.urlBase}/${selection.config.file}`;
+        layersToRender = [{ src: fullPath, z: 1 }]; // 默认 z=1
+        baseImageUrl = fullPath;
 
-        // 2. 应用样式与特效 (核心重构点)
-        applyWallpaperEffects(img, wallpaperData ? wallpaperData.config : null);
+    } else {
+        // --- 模式 C: 网络兜底 ---
+        const bingUrl = `https://api.paugram.com/bing?${Date.now()}`;
+        layersToRender = [{ src: bingUrl, z: 1 }];
+        baseImageUrl = bingUrl;
+    }
 
-        // 3. 设置背景
-        document.body.style.backgroundImage = `url('${imageUrl}')`;
-    };
+    console.log(`准备渲染壁纸 (层数: ${layersToRender.length})`);
 
-    img.src = imageUrl;
+    // 3. 预加载所有图层
+    // 我们创建一个 Promise 数组，确保所有层都加载完再插入 DOM
+    const imagePromises = layersToRender.map(layer => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            if (!selection) img.crossOrigin = "Anonymous"; // 网络图片跨域
+            img.src = layer.src;
+            img.onload = () => {
+                // 尝试解码
+                if ('decode' in img) img.decode().catch(()=>{}); 
+                resolve({ element: img, z: layer.z, src: layer.src });
+            };
+            img.onerror = () => {
+                console.warn(`图层加载失败: ${layer.src}`);
+                resolve(null); // 失败也resolve，防止整个壁纸卡死
+            };
+        });
+    });
+
+    // 4. 等待加载完成并渲染
+    try {
+        const loadedImages = await Promise.all(imagePromises);
+        const validImages = loadedImages.filter(item => item !== null);
+
+        // 4.1 应用颜色和特效 (使用 baseImage)
+        // 我们临时创建一个 img 对象给 ColorThief 用
+        const baseImgElement = new Image();
+        if (!selection) baseImgElement.crossOrigin = "Anonymous";
+        baseImgElement.src = baseImageUrl;
+        // 注意：这里直接传 src 也可以，但为了兼容之前的 applyWallpaperEffects 接口：
+        applyWallpaperEffects(baseImgElement, selection ? selection.config : null);
+
+        // 4.2 渲染到 DOM
+        renderLayersToDOM(validImages);
+
+    } catch (e) {
+        console.error("壁纸渲染管线异常:", e);
+    }
+}
+
+// 辅助：渲染图层到 #wallpaper-layers 容器
+function renderLayersToDOM(imagesData) {
+    const container = document.getElementById('wallpaper-layers');
+    if (!container) return;
+
+    // 策略：为了实现平滑过渡，我们创建一组新图层，盖在旧图层上面，然后淡出旧图层
+    // 但为了简化逻辑且避免 DOM 爆炸，这里采用：清空 -> 插入
+    // 如果需要极致平滑，可以使用双缓冲容器。这里使用简单的清空重绘。
+    
+    // 清除旧背景 (防止透明图层叠加导致重影)
+    container.innerHTML = '';
+    document.body.style.backgroundImage = 'none'; // 清除旧版 body 背景
+
+    imagesData.forEach(data => {
+        const imgDiv = document.createElement('img');
+        imgDiv.src = data.src;
+        imgDiv.className = 'wp-layer';
+        imgDiv.style.zIndex = data.z;
+        
+        // 简单的入场动画
+        imgDiv.style.opacity = '0';
+        container.appendChild(imgDiv);
+        
+        // 强制重排后显示，触发 transition
+        requestAnimationFrame(() => {
+            imgDiv.style.opacity = '1';
+        });
+    });
 }
 
 // =============================================================================
