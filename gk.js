@@ -33,6 +33,12 @@ let CachedColorStyle = {
     isManual: false // 标记是否是手动指定了颜色
 };
 
+//定义路径
+const PATHS = {
+    root: 'wallpaper',
+    themeRoot: '' // 动态加载
+};
+
 // =============================================================================
 // 2. 核心管线：配置加载 -> 壁纸选择 -> 资源加载 -> 样式应用
 // =============================================================================
@@ -44,28 +50,37 @@ async function loadThemeConfig() {
     STATE.isConfigLoading = true;
 
     try {
-        const indexRes = await fetch('wallpaper/index.json');
+        // A. 读取总入口 index.json
+        const indexRes = await fetch(`${PATHS.root}/index.json`);
         const indexData = await indexRes.json();
-        const themeFolder = indexData.themes[CONFIG.currentTheme];
-        if (!themeFolder) throw new Error(`主题未找到: ${CONFIG.currentTheme}`);
+        
+        // 获取当前激活的主题路径
+        const activeKey = indexData.active;
+        const relativeThemePath = indexData.list[activeKey];
+        
+        if (!relativeThemePath) throw new Error(`未找到主题定义: ${activeKey}`);
 
-        const themeRes = await fetch(`wallpaper/${themeFolder}/theme.json`);
+        // 设置当前主题的物理根路径 (例如: wallpaper/themes/depth_pro)
+        PATHS.themeRoot = `${PATHS.root}/${relativeThemePath}`;
+
+        // B. 读取具体主题配置 theme.json
+        const themeRes = await fetch(`${PATHS.themeRoot}/theme.json`);
         const themeData = await themeRes.json();
 
-        STATE.wallpaperConfig = {
-            basePath: `wallpaper/${themeFolder}`,
-            ...themeData
-        };
+        // 存储配置
+        STATE.wallpaperConfig = themeData;
 
-        // 如果主题定义了通用 CSS，加载它
-        if (STATE.wallpaperConfig.baseCss) {
-            loadThemeCss(`${STATE.wallpaperConfig.basePath}/${STATE.wallpaperConfig.baseCss}`);
+        // C. 加载主题通用 CSS (如果有)
+        if (themeData.meta && themeData.meta.css) {
+            const cssPath = `${PATHS.themeRoot}/${themeData.meta.css}`;
+            loadThemeCss(cssPath);
         }
 
-        console.log(`主题 [${CONFIG.currentTheme}] 加载成功`);
+        console.log(`主题 [${themeData.meta.name}] 加载完毕`);
         return STATE.wallpaperConfig;
+
     } catch (e) {
-        console.error("配置加载失败:", e);
+        console.error("配置加载链失败:", e);
         return null;
     } finally {
         STATE.isConfigLoading = false;
@@ -86,30 +101,66 @@ async function selectWallpaper() {
     const config = await loadThemeConfig();
     if (!config) return null;
 
+    // A. 筛选符合当前时间的图片列表
+    const hour = new Date().getHours();
     let candidates = [];
-    // ... (收集 candidates 逻辑保持不变) ...
-    if (CONFIG.wallpaperMode === 'random') {
-        config.schedule.forEach(rule => {
-            if (rule.images) rule.images.forEach(img => candidates.push({ ...img, folder: rule.folder }));
-        });
-    } else {
-        const hour = new Date().getHours();
-        let matchedRule = config.schedule.find(rule => 
-            (rule.start > rule.end) ? (hour >= rule.start || hour < rule.end) : (hour >= rule.start && hour < rule.end)
-        ) || config.schedule[0];
-        if (matchedRule && matchedRule.images) {
-            candidates = matchedRule.images.map(img => ({ ...img, folder: matchedRule.folder }));
+
+    // 遍历 schedule
+    config.schedule.forEach(rule => {
+        const [start, end] = rule.time;
+        const isMatch = (start > end) 
+            ? (hour >= start || hour < end) // 跨夜
+            : (hour >= start && hour < end); // 正常
+
+        // 如果是 random 模式，忽略时间；如果是 time 模式，必须匹配
+        if (CONFIG.wallpaperMode === 'random' || isMatch) {
+            if (rule.items && rule.items.length > 0) {
+                // 将 folder 信息注入到每个 item 中，方便后续拼接
+                rule.items.forEach(item => {
+                    candidates.push({
+                        ...item,
+                        _folder: rule.folder || '' // 暂存 folder 路径
+                    });
+                });
+            }
         }
-    }
+    });
 
     if (candidates.length === 0) return null;
+
+    // B. 随机抽取一张
     const selection = candidates[Math.floor(Math.random() * candidates.length)];
+
+    // C. 标准化输出格式 (无论是单图还是多层，都转为 layers 数组)
+    let layersToRender = [];
     
-    // 构建 base 路径，不包含文件名，方便多层拼接
-    let urlBase = config.basePath;
-    if (selection.folder) urlBase += `/${selection.folder}`;
-    
-    return { urlBase: urlBase, config: selection };
+    // 辅助函数：拼接完整路径
+    const makePath = (filename) => {
+        // 拼接逻辑：root + theme + schedule_folder + filename
+        // 注意处理斜杠，防止出现 //
+        let parts = [PATHS.themeRoot, selection._folder, filename];
+        return parts.filter(p => p).join('/'); 
+    };
+
+    if (selection.type === 'layers') {
+        // 多层模式
+        layersToRender = selection.layers.map(layer => ({
+            src: makePath(layer.src),
+            z: layer.z
+        }));
+    } else {
+        // 单图模式 (默认 z=1)
+        layersToRender = [{
+            src: makePath(selection.src),
+            z: 1
+        }];
+    }
+
+    // 返回给 updateWallpaper 使用
+    return {
+        layers: layersToRender,
+        config: selection // 包含 style, script, desc 等元数据
+    };
 }
 
 // 2.4 更新壁纸主逻辑
