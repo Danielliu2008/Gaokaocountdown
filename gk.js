@@ -338,7 +338,7 @@ function initMeteorEffect() {
     const container = document.getElementById('meteor-container');
     if (!container) return;
     container.innerHTML = '';
-    const count = Math.floor(Math.random() * 121) + 150;
+    const count = Math.floor(Math.random() * 360) + 150;
     
     for (let i = 0; i < count; i++) {
         const m = document.createElement('div');
@@ -349,7 +349,7 @@ function initMeteorEffect() {
         const op = 0.3 + Math.random() * 0.5;
         
         m.style.height = `${28 + len}%`;
-        m.style.width = `${1 + Math.random() * 2}px`;
+        m.style.width = `${1 + Math.random() * 3}px`;
         m.style.setProperty('--angle', `${angle}deg`);
         m.style.setProperty('--max-opacity', op);
         m.style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
