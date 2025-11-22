@@ -1,0 +1,15 @@
+/* 赛博朋克风格动画 (对应 json 中的 class: "cyberpunk-glitch") */
+body.cyberpunk-glitch .content {
+    animation: glitch-skew 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+}
+body.cyberpunk-glitch #orbit-day-number {
+    font-family: 'Courier New', monospace; /* 换个字体 */
+    color: #00ffea !important; /* 强制颜色 */
+}
+
+@keyframes glitch-skew {
+    0% { transform: skew(0deg); }
+    20% { transform: skew(-2deg); }
+    40% { transform: skew(2deg); }
+    100% { transform: skew(0deg); }
+}

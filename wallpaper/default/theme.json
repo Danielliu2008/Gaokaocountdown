@@ -1,0 +1,37 @@
+{
+  "themeName": "我的精选集",
+  "baseCss": "theme.css", 
+  "schedule": [
+    {
+      "start": 5, "end": 18, "folder": "day",
+      "images": [
+        { 
+          "file": "1.jpg",
+          "desc": "普通模式，自动提取颜色"
+        },
+        { 
+          "file": "2.jpg",
+          "desc": "赛博朋克风格，强制霓虹色，且有震动动画",
+          "class": "cyberpunk-glitch", 
+          "style": {
+            "color": "#00ffea",
+            "textShadow": "0 0 10px #00ffea, 0 0 20px #ff00de"
+          }
+        }
+      ]
+    },
+    {
+      "start": 18, "end": 5, "folder": "night",
+      "images": [
+        { 
+          "file": "night.jpg",
+          "desc": "夜间模式，加载独立的下雨特效JS",
+          "script": "rain_effect.js",
+          "style": {
+             "color": "white"
+          }
+        }
+      ]
+    }
+  ]
+}
