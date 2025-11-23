@@ -1,25 +1,119 @@
-/* 仅当 body 拥有 mountains-style 类时生效 */
-body.mountains-style {
-    /* 可以微调背景色作为图片加载前的底色 */
-    background-color: #1a1a1a;
+/*------------------------------
+  1. 字体
+------------------------------*/
+@font-face {
+    font-family: 'RampartOne';
+    src: url('./fonts/Rampart_One/RampartOne-Regular.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'NumberFont';
+    src: url('../../../number.ttf') format('truetype');
 }
 
-/* 调整倒计时大数字的样式 */
-body.mountains-style #orbit-day-number {
-    font-family: 'Impact', 'Arial Black', sans-serif; /* 用更粗的字体 */
-    font-size: 220px; /*稍微放大 */
-    letter-spacing: 5px;
-    /* 增加一个稍微带蓝色的阴影，呼应雪山 */
-    text-shadow: 0 10px 30px rgba(10, 20, 40, 0.8);
-    opacity: 0.95;
+/*------------------------------
+  2. 隐藏原有布局元素
+------------------------------*/
+body.linear-layout-mode #orbit-countdown,
+body.linear-layout-mode #full-countdown-container,
+body.linear-layout-mode #greeting {
+    display: none !important;
 }
 
-/* 调整底部一言/语录的样式 */
-body.mountains-style #hitokoto {
-    font-family: 'Courier New', serif;
-    font-weight: bold;
-    background: rgba(0, 0, 0, 0.3); /* 半透明黑底 */
-    padding: 10px 20px;
-    border-radius: 20px;
-    backdrop-filter: blur(5px); /* 毛玻璃效果 */
+/*------------------------------
+  3. 自定义布局容器
+------------------------------*/
+#custom-linear-layout {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 5;
+}
+
+/*------------------------------
+  4. 引导线（杂志侧栏风）
+------------------------------*/
+.guide-line {
+    position: absolute;
+    top: 10%;
+    right: 12%;
+    height: 70%;
+    width: 1px;
+    background: rgba(255,255,255,0.32);
+    z-index: 7;
+}
+
+/*------------------------------
+  5. 竖排年份（核心杂志风）
+------------------------------*/
+.vertical-year {
+    position: absolute;
+    top: 12%;
+    right: 9%;
+    writing-mode: vertical-rl;
+
+    font-family: 'NumberFont', sans-serif;
+    font-size: 7vh;
+    font-weight: 900;
+    letter-spacing: 1.2vh;
+
+    color: rgba(255,255,255,0.85);
+
+    text-shadow:
+        0 0 6px rgba(0,0,0,0.7),
+        0 0 18px rgba(0,0,0,0.5);
+
+    /* 关键：制造“山体遮挡效果” */
+    mix-blend-mode: lighten;
+
+    z-index: 8;
+}
+
+/*------------------------------
+  6. 主文案（倒计时 + 副标题）
+------------------------------*/
+.text-group {
+    position: absolute;
+    top: 22%;
+    right: 15.5%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+
+    z-index: 9; /* 在年份数字上层，形成杂志封面遮挡关系 */
+}
+
+.layout-line {
+    white-space: nowrap;
+    text-shadow:
+        0 0 4px rgba(0,0,0,0.75),
+        0 0 10px rgba(0,0,0,0.55);
+}
+
+/*------------------------------
+  7. 一言（hitokoto）搬运后的样式
+------------------------------*/
+.moved-hitokoto {
+    position: absolute !important;
+    bottom: 8%;
+    right: 5%;
+
+    max-width: 360px;
+    text-align: right;
+
+    font-size: 1.8vh;
+    font-family: "KaiTi", serif;
+    color: rgba(255,255,255,0.95) !important;
+
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important;
+
+    line-height: 1.6;
+    font-style: italic;
+    z-index: 12;
+
+    border-right: 2px solid rgba(0, 229, 255, 0.6);
+    padding-right: 15px;
+
+    margin: 0 !important;
 }

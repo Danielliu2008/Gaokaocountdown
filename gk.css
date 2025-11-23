@@ -1,59 +1,135 @@
-/* 1. 引入精确模式的字体 (数字) */
-@font-face {
-  font-family: 'NumberFont';
-  src: url('number.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
+/* --- gk.css 完整修复版 --- */
 
-/* 2. 引入星轨模式的字体 (大数字) */
+/* =========================================
+   1. 字体定义
+   ========================================= */
 @font-face {
-  font-family: 'StarFont';
-  src: url('star.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
+    font-family: 'NumberFont';
+    src: url('number.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
 }
 
 @font-face {
-  font-family: 'HitokotoFont';
-  src: url('hitokoto_font.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
+    font-family: 'StarFont';
+    src: url('star.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
 }
 
-body { font-family: 'Arial', sans-serif; text-align: center; margin: 0; padding: 0; height: 100vh; display: flex; justify-content: center; align-items: center; background-image: url('https://api.paugram.com/bing'); background-size: cover; background-position: center; background-repeat: no-repeat; position: relative; overflow: hidden; }
-.overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.15); z-index: 2; }
-.content { position: relative; z-index: 5; padding-bottom: clamp(30px, 3.125vw, 90px); width: 90%; max-width: 1400px; display: flex; flex-direction: column; align-items: center; }
+@font-face {
+    font-family: 'HitokotoFont';
+    src: url('hitokoto_font.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
 
+/* =========================================
+   2. 全局基础样式
+   ========================================= */
+body {
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* 默认背景色，防止图片加载前白屏 */
+    background-color: #000; 
+    /* 默认背景图设置 (会被JS覆盖，但保留作为兜底) */
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    position: relative;
+    overflow: hidden;
+}
+
+/* =========================================
+   3. 图层与层级管理 (核心修复: 景深遮挡)
+   ========================================= */
+
+/* 壁纸图层容器 */
+/* 注意：这里千万不要加 z-index，也不要加 opacity/transform */
+/* 否则会创建新的层叠上下文，导致子元素无法遮挡外部的文字 */
 #wallpaper-layers {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 0; /* 最底层 */
     overflow: hidden;
-    pointer-events: none; /* 让点击穿透到背景 */
+    pointer-events: none; /* 让鼠标穿透，不影响交互 */
 }
 
-/* 2. 单个图层样式 */
+/* 单个图层通用样式 */
 .wp-layer {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover; /* 确保统一分辨率铺满，无需手动定位 */
-    transition: opacity 1s ease-in-out; /* 淡入淡出效果 */
+    object-fit: cover; /* 关键：保证多层图片完美对齐 */
+    transition: opacity 1s ease-in-out;
+    /* z-index 由 JS 动态控制: 
+       背景通常为 1
+       前景通常为 10+ 
+    */
 }
 
+/* 遮罩层: 位于背景之上(z=1)，内容之下(z=5) */
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.1); /* 轻微提亮或变暗 */
+    backdrop-filter: blur(0px); /* 按需开启 */
+    z-index: 2; 
+    pointer-events: none;
+}
 
-/* --- 精确模式字体应用 --- */
-/* 应用 NumberFont 到所有倒计时数字 */
+/* 内容主容器: 位于中间层 */
+.content {
+    position: relative;
+    /* z-index 设为 5，这是分水岭 */
+    /* z < 5 的图片在文字后面 */
+    /* z > 5 的图片在文字前面 (形成遮挡) */
+    z-index: 5; 
+    
+    padding-bottom: clamp(30px, 3.125vw, 90px);
+    width: 90%;
+    max-width: 1400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+/* 页脚: 通常不希望被遮挡，设高一点 */
+footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    padding: clamp(5px, 0.52vw, 15px);
+    text-align: center;
+    box-sizing: border-box;
+    z-index: 6; 
+}
+
+/* =========================================
+   4. 倒计时样式 (精确模式 & 天数模式)
+   ========================================= */
+
+/* 字体应用 */
 #days, #weeks, #remaining-days, #hours, #minutes, #seconds, #year {
     font-family: 'NumberFont', 'Arial', sans-serif;
 }
-/* 微调精确模式下数字的基线，防止自定义字体上下偏移 */
+
+/* 微调自定义数字字体的基线 */
 .countdown span.dynamic-color {
     position: relative;
     top: 2px; 
@@ -66,9 +142,9 @@ h1 { font-size: clamp(24px, 1.875vw, 54px); margin-bottom: clamp(5px, 0.52vw, 15
 .countdown .countdown-unit { margin: 0 clamp(4px, 0.4vw, 12px); }
 .greeting { font-size: clamp(18px, 1.25vw, 36px); margin-top: clamp(10px, 1.04vw, 30px); display: none; }
 
-/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-/* 星轨主题样式 (含流星特效) */
-/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+/* =========================================
+   5. 星轨/圆环倒计时 (Orbit Mode)
+   ========================================= */
 #orbit-countdown {
     position: relative;
     width: clamp(300px, 15.625vw, 450px);
@@ -91,105 +167,127 @@ h1 { font-size: clamp(24px, 1.875vw, 54px); margin-bottom: clamp(5px, 0.52vw, 15
     z-index: 1;
 }
 
-/* --- 新增：流星容器与样式 --- */
-.meteor-container {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    pointer-events: none;
-    z-index: 0; /* 放在最底层，但在背景之上 */
-    /* 让整个流星盘缓慢旋转，增加动感 */
-    //animation: spinMeteors 120s linear infinite;
-}
-
-.meteor {
-    position: absolute;
-    left: 50%; top: 50%;
-    width: 2px; /* 线条宽度 */
-    background: linear-gradient(to top, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.8)); /* 渐变模拟拖尾 */
-    transform-origin: bottom center; /* 以底部（圆心）为旋转轴 */
-    border-radius: 2px;
-}
-
-@keyframes spinMeteors {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-/* SVG 容器 */
+/* SVG 环形文字 */
 .orbit-text-path { position: absolute; width: 70%; height: 70%; top: 15%; left: 15%; z-index: 2; }
 .orbit-text-path textPath { font-size: 16px; letter-spacing: 8px; text-transform: uppercase; fill: white; }
 
-/* 中心数字样式 */
+/* 中心大数字 */
 #orbit-day-number {
     position: relative; top: 32%;
     font-size: clamp(90px, 7.3vw, 210px);
     font-weight: 700;
     line-height: 1;
-    /* --- 应用 StarFont --- */
     font-family: 'StarFont', 'Impact', sans-serif; 
     color: white; 
     text-shadow: 0 0 15px rgba(0,0,0,0.2);
     z-index: 2;
 }
 
-/* 年份样式 */
+/* 年份小字 */
 #orbit-year {
     position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%);
     font-size: clamp(16px, 1vw, 24px);
     font-weight: bold;
-    /* 年份也使用 NumberFont */
     font-family: 'NumberFont', sans-serif;
     z-index: 2;
 }
 
-/* --- 新增：流星容器与样式 --- */
+/* =========================================
+   6. 流星特效 (Meteor Effect)
+   ========================================= */
 .meteor-container {
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
     pointer-events: none;
     z-index: 0; 
-    /* 移除了旋转动画 spinMeteors */
 }
 
 .meteor {
     position: absolute;
     left: 50%; top: 50%;
-    width: 2px; /* 线条宽度 */
-    /* 调整渐变：从底部(内侧)全透明 -> 顶部(外侧)白色，模拟向外发射的光束 */
-    background: linear-gradient(to top, transparent 0%, rgba(255, 255, 255, 0.1) 20%, white 100%);
-    transform-origin: bottom center; /* 以底部（圆心）为轴 */
+    /* width 由 JS 随机控制 */
+    /* height 由 JS 随机控制 */
+    transform-origin: bottom center;
     border-radius: 2px;
-    
-    /* 初始状态全透明 */
     opacity: 0;
-    
-    /* 应用呼吸/闪烁动画 */
+    will-change: transform, opacity;
     animation: meteorFadeInOut ease-in-out infinite;
 }
 
-/* 定义流星通过亮度变化模拟出现到消失的动画 */
 @keyframes meteorFadeInOut {
     0% {
         opacity: 0;
-        /* 可选：稍微拉长一点增加向外冲刺的感觉 */
-        transform: translate(-50%, -100%) rotate(var(--angle)) scaleY(0.9); 
+        transform: translate(-50%, -100%) rotate(var(--angle)) scaleY(0.95);
     }
     50% {
-        /* 达到该流星随机设定的最大亮度 */
         opacity: var(--max-opacity);
-        transform: translate(-50%, -100%) rotate(var(--angle)) scaleY(1.05);
+        transform: translate(-50%, -100%) rotate(var(--angle)) scaleY(1);
     }
     100% {
         opacity: 0;
-        transform: translate(-50%, -100%) rotate(var(--angle)) scaleY(1.1);
+        transform: translate(-50%, -100%) rotate(var(--angle)) scaleY(1.05);
     }
 }
 
-.hitokoto { font-size: clamp(16px, 1.15vw, 33px); margin-top: clamp(30px, 2.6vw, 75px); font-style: italic; font-family: 'HitokotoFont', "KaiTi", serif; transition: color 0.5s ease-in-out, text-shadow 0.5s ease-in-out; }
-footer { position: absolute; bottom: 0; width: 100%; padding: clamp(5px, 0.52vw, 15px); text-align: center; box-sizing: border-box; z-index: 5; }
-.dynamic-color { animation: colorChange 40s infinite; background-color: rgba(0, 0, 0, 0.05); padding: 0 clamp(2px, 0.1vw, 4px); border-radius: 4px;}
+/* =========================================
+   7. 其他组件 (一言、自动颜色)
+   ========================================= */
+.hitokoto { 
+    font-size: clamp(16px, 1.15vw, 33px); 
+    margin-top: clamp(30px, 2.6vw, 75px); 
+    font-style: italic; 
+    font-family: 'HitokotoFont', "KaiTi", serif; 
+    transition: color 0.5s ease-in-out, text-shadow 0.5s ease-in-out; 
+}
+
+.dynamic-color { 
+    /* 颜色由 JS 或 CSS 动画控制 */
+    background-color: rgba(0, 0, 0, 0.05); 
+    padding: 0 clamp(2px, 0.1vw, 4px); 
+    border-radius: 4px;
+}
+
+.auto-color { 
+    transition: color 0.5s ease-in-out, text-shadow 0.5s ease-in-out; 
+}
+
+/* JS 动态生成的 Keyframes 用于颜色呼吸灯 */
 @keyframes colorChange { /* JS Generated */ }
-.auto-color { color: black; transition: color 0.5s ease-in-out, text-shadow 0.5s ease-in-out; }
-.network-error-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0, 0, 0, 0.8); color: white; padding: clamp(10px, 0.78vw, 22px) clamp(20px, 1.56vw, 45px); border-radius: clamp(6px, 0.42vw, 12px); z-index: 100; opacity: 0; transition: opacity 0.5s ease-in-out; font-size: clamp(14px, 0.94vw, 27px); pointer-events: none; }
+
+/* 网络错误提示弹窗 */
+.network-error-popup { 
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+    background-color: rgba(0, 0, 0, 0.8); color: white; 
+    padding: clamp(10px, 0.78vw, 22px) clamp(20px, 1.56vw, 45px); 
+    border-radius: clamp(6px, 0.42vw, 12px); 
+    z-index: 100; opacity: 0; transition: opacity 0.5s ease-in-out; 
+    font-size: clamp(14px, 0.94vw, 27px); pointer-events: none; 
+}
+
+/* =========================================
+   8. 自定义主题样式示例 (Mountains)
+   ========================================= */
+   
+/* 仅当 theme.json 中配置了 class: "mountains-style" 时生效 */
+body.mountains-style {
+    background-color: #101520; /* 这里的背景色作为图片加载前的填充 */
+}
+
+body.mountains-style #orbit-day-number {
+    font-family: 'Impact', 'Arial Black', sans-serif; /* 更粗犷的字体 */
+    font-size: 220px; 
+    letter-spacing: 5px;
+    text-shadow: 0 10px 30px rgba(0, 0, 0, 0.8); /* 强阴影 */
+    opacity: 0.95;
+}
+
+body.mountains-style #hitokoto {
+    font-family: 'Courier New', serif;
+    font-weight: bold;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 12px 24px;
+    border-radius: 30px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
