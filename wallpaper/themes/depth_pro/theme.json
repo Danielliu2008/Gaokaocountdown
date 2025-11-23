@@ -20,9 +20,9 @@
 "layoutConfig": {
             "content": [
               { 
-                "text": "再 拼", 
+                "text": "再坚持", 
                 "size": "4vh", 
-                "color": "rgba(255,255,255,0.9)", 
+                "color": "rgba(255,255,255,0.95)", 
                 "font": "SimHei", 
                 "marginTop": "0" 
               },
@@ -31,7 +31,7 @@
                 "size": "18vh",       
                 "color": "#aeeeee", 
                 "font": "RampartOne", 
-                "marginTop": "-2vh" 
+                "marginTop": "-4vh" 
               },
               { 
                 "text": "天", 
@@ -41,16 +41,16 @@
                 "isOverlay": true 
               },
               { 
-                "text": "之后去稻城", 
-                "size": "3.5vh",  
-                "color": "rgba(255,255,255,0.9)", 
+                "text": "去更高处，看无人之境", 
+                "size": "3.2vh",  
+                "color": "rgba(255,255,255,0.95)", 
                 "font": "Microsoft YaHei", 
-                "marginTop": "2vh" 
+                "marginTop": "1.5vh" 
               },
               { 
-                "text": "看 冰 雪", 
-                "size": "4.5vh", 
-                "color": "#fff", 
+                "text": "未来的你，会感谢此刻的坚定", 
+                "size": "2.2vh", 
+                "color": "rgba(255,255,255,0.85)", 
                 "font": "SimSun", 
                 "marginTop": "1vh" 
               }

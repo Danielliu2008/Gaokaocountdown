@@ -1,119 +1,129 @@
-/*------------------------------
-  1. 字体
-------------------------------*/
+/* 1. 字体注册 (保持不变) */
 @font-face {
     font-family: 'RampartOne';
     src: url('./fonts/Rampart_One/RampartOne-Regular.ttf') format('truetype');
 }
 @font-face {
     font-family: 'NumberFont';
-    src: url('../../../number.ttf') format('truetype');
+    src: url('../../../number.ttf') format('truetype'); 
 }
 
-/*------------------------------
-  2. 隐藏原有布局元素
-------------------------------*/
+/* 2. 隐藏原有元素 */
+body.linear-layout-mode #orbit-countdown,
+body.linear-layout-mode #full-countdown-container,
+body.linear-layout-mode #greeting, {
+    display: none !important;
+}
+
+/* 3. 容器设置 */
+#custom-linear-layout {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* 4. 引导线 (更细致，更靠右) */
+.guide-line {
+    position: absolute;
+    top: 15%;        /* 顶部留白增加 */
+    right: 12%;      /* 【关键】向右移：从 18% 改为 12% */
+    width: 1px;      /* 线条变细，更精致 */
+    height: 60%;     
+    background: linear-gradient(to bottom, 
+        rgba(255,255,255,0) 0%, 
+        rgba(255,255,255,0.6) 20%, 
+        rgba(255,255,255,0.6) 80%, 
+        rgba(255,255,255,0) 100%
+    );
+    z-index: 5;
+}
+
+/* 5. 文字组容器 (紧贴引导线) */
+.text-group {
+    position: absolute;
+    top: 20%;        
+    
+    /* 【修改点1】向右靠拢 */
+    /* 引导线在 12%，我们将文字放在 12.2% 的位置，几乎紧贴 */
+    right: 12.2%;    
+    
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end; /* 确保内部文字右对齐 */
+    
+    /* 【修改点2】减小右侧内边距 */
+    /* 之前是 15px，现在改为 5px，消除空隙感 */
+    padding-right: 5px; 
+    
+    z-index: 5;    
+}
+
+/* 6. 通用行样式 */
+.layout-line {
+    white-space: nowrap;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.6); 
+    position: relative; /* 为子元素的绝对定位做准备 */
+}
+
+/* 7. 竖排年份 (更小，更精致) */
+.vertical-year {
+    position: absolute;
+    top: 15%;       
+    right: 9%;       /* 在线条右侧 */
+    font-family: 'NumberFont', sans-serif;
+    font-size: 4vh;  /* 【关键】从 6vh 减小到 4vh */
+    color: rgba(255, 255, 255, 0.4); /* 降低不透明度，作为背景装饰 */
+    writing-mode: vertical-rl; 
+    letter-spacing: 0.8vh; /* 增加字间距，更有呼吸感 */
+    z-index: 5;
+    font-weight: bold;
+}
+
+/* 8. 一言样式 */
+/* 2. 隐藏原有元素 (注意：把 #hitokoto 从这里移除，不要隐藏它了！) */
 body.linear-layout-mode #orbit-countdown,
 body.linear-layout-mode #full-countdown-container,
 body.linear-layout-mode #greeting {
     display: none !important;
 }
+/* 注意：上面删除了 #hitokoto，因为它被 JS 搬运到了新容器里，我们要显示它 */
 
-/*------------------------------
-  3. 自定义布局容器
-------------------------------*/
-#custom-linear-layout {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    pointer-events: none;
-    overflow: hidden;
-    z-index: 5;
-}
 
-/*------------------------------
-  4. 引导线（杂志侧栏风）
-------------------------------*/
-.guide-line {
-    position: absolute;
-    top: 10%;
-    right: 12%;
-    height: 70%;
-    width: 1px;
-    background: rgba(255,255,255,0.32);
-    z-index: 7;
-}
+/* ... 中间的 CSS 保持不变 ... */
 
-/*------------------------------
-  5. 竖排年份（核心杂志风）
-------------------------------*/
-.vertical-year {
-    position: absolute;
-    top: 12%;
-    right: 9%;
-    writing-mode: vertical-rl;
 
-    font-family: 'NumberFont', sans-serif;
-    font-size: 7vh;
-    font-weight: 900;
-    letter-spacing: 1.2vh;
-
-    color: rgba(255,255,255,0.85);
-
-    text-shadow:
-        0 0 6px rgba(0,0,0,0.7),
-        0 0 18px rgba(0,0,0,0.5);
-
-    /* 关键：制造“山体遮挡效果” */
-    mix-blend-mode: lighten;
-
-    z-index: 8;
-}
-
-/*------------------------------
-  6. 主文案（倒计时 + 副标题）
-------------------------------*/
-.text-group {
-    position: absolute;
-    top: 22%;
-    right: 15.5%;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-
-    z-index: 9; /* 在年份数字上层，形成杂志封面遮挡关系 */
-}
-
-.layout-line {
-    white-space: nowrap;
-    text-shadow:
-        0 0 4px rgba(0,0,0,0.75),
-        0 0 10px rgba(0,0,0,0.55);
-}
-
-/*------------------------------
-  7. 一言（hitokoto）搬运后的样式
-------------------------------*/
+/* 8. 搬运后的一言样式 (复刻原版风格 + 适配新位置) */
 .moved-hitokoto {
-    position: absolute !important;
+    position: absolute !important; /* 强制定位 */
     bottom: 8%;
     right: 5%;
-
     max-width: 360px;
     text-align: right;
-
-    font-size: 1.8vh;
-    font-family: "KaiTi", serif;
-    color: rgba(255,255,255,0.95) !important;
-
+    
+    /* 继承原版的字体，或者你可以强制指定 */
+    font-family: 'HitokotoFont', "KaiTi", serif; 
+    
+    /* 调整字号，原版可能很大，这里适配一下布局 */
+    font-size: 1.8vh; 
+    
+    /* 颜色保持原版逻辑（自动变色），或者强制覆盖为白色 */
+    color: rgba(255, 255, 255, 0.95) !important; 
     text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important;
-
+    
     line-height: 1.6;
     font-style: italic;
-    z-index: 12;
-
+    
+    /* 层级必须高于前景山峰(z=10) */
+    z-index: 12; 
+    
+    /* 加个右侧装饰线，保持设计感 */
     border-right: 2px solid rgba(0, 229, 255, 0.6);
     padding-right: 15px;
-
+    
+    /* 确保原版可能存在的 margin 不会干扰定位 */
     margin: 0 !important;
+    
+    /* 确保动画过程中的高度变化不影响布局 */
+    height: auto !important;
 }
