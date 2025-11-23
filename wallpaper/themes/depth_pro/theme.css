@@ -1,15 +1,25 @@
-/* 赛博朋克风格动画 (对应 json 中的 class: "cyberpunk-glitch") */
-body.cyberpunk-glitch .content {
-    animation: glitch-skew 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
-}
-body.cyberpunk-glitch #orbit-day-number {
-    font-family: 'Courier New', monospace; /* 换个字体 */
-    color: #00ffea !important; /* 强制颜色 */
+/* 仅当 body 拥有 mountains-style 类时生效 */
+body.mountains-style {
+    /* 可以微调背景色作为图片加载前的底色 */
+    background-color: #1a1a1a;
 }
 
-@keyframes glitch-skew {
-    0% { transform: skew(0deg); }
-    20% { transform: skew(-2deg); }
-    40% { transform: skew(2deg); }
-    100% { transform: skew(0deg); }
+/* 调整倒计时大数字的样式 */
+body.mountains-style #orbit-day-number {
+    font-family: 'Impact', 'Arial Black', sans-serif; /* 用更粗的字体 */
+    font-size: 220px; /*稍微放大 */
+    letter-spacing: 5px;
+    /* 增加一个稍微带蓝色的阴影，呼应雪山 */
+    text-shadow: 0 10px 30px rgba(10, 20, 40, 0.8);
+    opacity: 0.95;
+}
+
+/* 调整底部一言/语录的样式 */
+body.mountains-style #hitokoto {
+    font-family: 'Courier New', serif;
+    font-weight: bold;
+    background: rgba(0, 0, 0, 0.3); /* 半透明黑底 */
+    padding: 10px 20px;
+    border-radius: 20px;
+    backdrop-filter: blur(5px); /* 毛玻璃效果 */
 }

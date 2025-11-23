@@ -6,7 +6,7 @@
 const CONFIG = {
     enableLocalWallpaper: true,   // 开关：本地/网络
     wallpaperMode: 'time',        // 模式：'time' (时间匹配) | 'random' (全局随机)
-    currentTheme: 'default',      // 主题：对应 index.json 中的 key
+    currentTheme: 'depth_pro',      // 主题：对应 index.json 中的 key
     refreshInterval: 20 * 60000,  // 刷新间隔 (20分钟)
     useDynamicColor: true,        // 是否启用自动颜色提取 (当 json 未指定 style 时)
     countdownMode: 'days'         // 倒计时模式
@@ -101,46 +101,49 @@ async function selectWallpaper() {
     const config = await loadThemeConfig();
     if (!config) return null;
 
-    // A. 筛选符合当前时间的图片列表
     const hour = new Date().getHours();
     let candidates = [];
 
     // 遍历 schedule
     config.schedule.forEach(rule => {
-        const [start, end] = rule.time;
-        const isMatch = (start > end) 
-            ? (hour >= start || hour < end) // 跨夜
-            : (hour >= start && hour < end); // 正常
+        // 1. 判断时间匹配
+        let isMatch = false;
+        
+        if (CONFIG.wallpaperMode === 'random') {
+            // 随机模式：忽略时间，所有配置都加入候选
+            isMatch = true;
+        } else {
+            // Time/Rule 模式：严格匹配时间段
+            const [start, end] = rule.time;
+            isMatch = (start > end) 
+                ? (hour >= start || hour < end) // 跨夜 (如 18点 到 6点)
+                : (hour >= start && hour < end); // 正常 (如 6点 到 18点)
+        }
 
-        // 如果是 random 模式，忽略时间；如果是 time 模式，必须匹配
-        if (CONFIG.wallpaperMode === 'random' || isMatch) {
-            if (rule.items && rule.items.length > 0) {
-                // 将 folder 信息注入到每个 item 中，方便后续拼接
-                rule.items.forEach(item => {
-                    candidates.push({
-                        ...item,
-                        _folder: rule.folder || '' // 暂存 folder 路径
-                    });
-                });
-            }
+        // 2. 如果匹配，将该规则下的 items 加入候选池
+        if (isMatch && rule.items && rule.items.length > 0) {
+            candidates = candidates.concat(rule.items);
         }
     });
 
-    if (candidates.length === 0) return null;
+    if (candidates.length === 0) {
+        console.warn("当前时间段未找到匹配的壁纸配置");
+        return null;
+    }
 
     // B. 随机抽取一张
     const selection = candidates[Math.floor(Math.random() * candidates.length)];
 
-    // C. 标准化输出格式 (无论是单图还是多层，都转为 layers 数组)
-    let layersToRender = [];
+    // C. 路径拼接逻辑 (简化版)
+    // 逻辑：最终路径 = wallpaper/themes/{主题名} + / + {json里配置的src}
     
-    // 辅助函数：拼接完整路径
-    const makePath = (filename) => {
-        // 拼接逻辑：root + theme + schedule_folder + filename
-        // 注意处理斜杠，防止出现 //
-        let parts = [PATHS.themeRoot, selection._folder, filename];
-        return parts.filter(p => p).join('/'); 
+    const makePath = (relativePath) => {
+        // PATHS.themeRoot 已经在 loadThemeConfig 中被设置为 "wallpaper/themes/主题名"
+        // 我们只需要简单地拼接，不再需要中间的 folder 变量
+        return `${PATHS.themeRoot}/${relativePath}`;
     };
+
+    let layersToRender = [];
 
     if (selection.type === 'layers') {
         // 多层模式
@@ -149,17 +152,17 @@ async function selectWallpaper() {
             z: layer.z
         }));
     } else {
-        // 单图模式 (默认 z=1)
+        // 单图模式 (兼容旧配置，如果未写 type 默认为单图)
         layersToRender = [{
             src: makePath(selection.src),
             z: 1
         }];
     }
 
-    // 返回给 updateWallpaper 使用
+    // 返回结果
     return {
         layers: layersToRender,
-        config: selection // 包含 style, script, desc 等元数据
+        config: selection // 包含 style, script, desc, class 等
     };
 }
 
@@ -281,38 +284,45 @@ function renderLayersToDOM(imagesData) {
 // =============================================================================
 
 function applyWallpaperEffects(imgElement, imgConfig) {
-    // 3.1 重置旧状态
-    document.body.className = ''; // 清除之前的 class
-    if (STATE.currentScriptTag) { // 移除旧脚本
+    // 1. 重置旧状态 (关键步骤)
+    // 这行代码会移除 body 上所有的 class，防止上一个主题的样式残留
+    document.body.className = ''; 
+    
+    // 如果有旧的脚本标签，移除它
+    if (STATE.currentScriptTag) { 
         STATE.currentScriptTag.remove();
         STATE.currentScriptTag = null;
     }
     
-    // 3.2 判定是否手动指定了样式
-    const manualStyle = imgConfig && imgConfig.style;
+    // 2. 保存当前配置状态
     STATE.currentImageConfig = imgConfig;
+    const manualStyle = imgConfig && imgConfig.style;
     CachedColorStyle.isManual = !!manualStyle;
 
+    // 3. 应用 CSS Class (这里就是实现你需求的地方)
+    // 检查 theme.json 里是否配置了 "class": "mountains-style"
+    if (imgConfig && imgConfig.class) {
+        document.body.classList.add(imgConfig.class);
+        console.log(`已注入 CSS Class: ${imgConfig.class}`);
+    }
+
+    // 4. 处理手动样式 (style 字段)
     if (manualStyle) {
-        // --- 模式 A: 手动样式 (优先) ---
-        console.log("应用自定义样式配置");
-        // 将手动配置转为 CachedColorStyle 格式，方便 unify 接口
-        CachedColorStyle.useLight = true; // 默认，具体看 style.color
-        CachedColorStyle.lightText = manualStyle.color || "white";
-        CachedColorStyle.darkText = manualStyle.color || "black";
-        
-        // 移除可能的自动颜色动画
-        if (STATE.dynamicStyleSheet) STATE.dynamicStyleSheet.innerText = '';
-        
-        // 如果配置了 textShadow，在这里生成一个临时的 CSS class 或者直接应用
-        // 为了简单，我们依赖 updateAutoColorElements 读取 CachedColorStyle
-        // 但 manualStyle 可能很复杂，我们直接通过 CSS 变量或内联样式处理会更灵活
-        // 这里采用：将 manualStyle 存入 CSS 变量，CSS 中使用 var
+        console.log("应用自定义内联样式配置");
+        // 设置 CSS 变量，方便在 CSS 文件中通过 var(--custom-color) 调用
         document.documentElement.style.setProperty('--custom-color', manualStyle.color || 'inherit');
         document.documentElement.style.setProperty('--custom-shadow', manualStyle.textShadow || 'none');
         
+        // 同时更新缓存对象，用于 updateAutoColorElements
+        CachedColorStyle.useLight = true; 
+        CachedColorStyle.lightText = manualStyle.color || "white";
+        CachedColorStyle.darkText = manualStyle.color || "black";
+        
+        // 清除可能存在的流光动画样式
+        if (STATE.dynamicStyleSheet) STATE.dynamicStyleSheet.innerText = '';
+        
     } else {
-        // --- 模式 B: 自动颜色提取 (ColorThief / Canvas) ---
+        // 如果没有手动样式，清理变量并执行自动取色
         document.documentElement.style.removeProperty('--custom-color');
         document.documentElement.style.removeProperty('--custom-shadow');
         
@@ -323,18 +333,14 @@ function applyWallpaperEffects(imgElement, imgConfig) {
         }
     }
 
-    // 3.3 应用 CSS Class (动画)
-    if (imgConfig && imgConfig.class) {
-        document.body.classList.add(imgConfig.class);
-        console.log(`应用动画 Class: ${imgConfig.class}`);
-    }
-
-    // 3.4 加载独立脚本
+    // 5. 加载独立脚本 (script 字段)
     if (imgConfig && imgConfig.script) {
-        loadCustomScript(`${STATE.wallpaperConfig.basePath}/${imgConfig.script}`);
+        // 拼接完整路径: wallpaper/themes/depth_pro/rain.js
+        const scriptPath = `${PATHS.themeRoot}/${imgConfig.script}`;
+        loadCustomScript(scriptPath);
     }
 
-    // 3.5 刷新 DOM 元素颜色
+    // 6. 刷新页面上的文字颜色
     updateAutoColorElements();
 }
 

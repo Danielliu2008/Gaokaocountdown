@@ -1,35 +1,27 @@
 {
   "meta": {
-    "name": "多层景深演示",
-    "author": "User",
-    "css": "style.css" 
+    "name": "雪山景深",
+    "css": "theme.css"
   },
   "schedule": [
     {
-      "time": [6, 18], 
-      "folder": "assets/morning", 
+      "time": [0, 24], 
+      "desc": "全天候固定显示",
       "items": [
         {
-          "type": "image",
-          "src": "view1.jpg",
-          "desc": "普通单图"
-        },
-        {
           "type": "layers",
-          "desc": "多层景深图",
+          "desc": "雪山遮挡效果",
+          "class": "mountains-style",
           "layers": [
-            { "src": "bg_02.jpg", "z": 1 },
-            { "src": "cloud.png", "z": 3 },
-            { "src": "girl.png", "z": 10 }
+            { "src": "mountains_bg.jpg", "z": 1 },
+            { "src": "mountains_layer_front.png", "z": 10 }
           ],
-          "style": { "color": "#333" }
+          "style": {
+            "color": "#ffffff",
+            "textShadow": "0 4px 15px rgba(0,0,0,0.9)"
+          }
         }
       ]
-    },
-    {
-      "time": [18, 6],
-      "folder": "assets/night",
-      "items": [ ... ]
     }
   ]
 }
