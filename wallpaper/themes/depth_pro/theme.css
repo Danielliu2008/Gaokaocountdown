@@ -94,36 +94,58 @@ body.linear-layout-mode #greeting {
 
 
 /* 8. 搬运后的一言样式 (复刻原版风格 + 适配新位置) */
+/* theme.css 末尾 */
+
 .moved-hitokoto {
-    position: absolute !important; /* 强制定位 */
+    /* 强制显示 */
+    display: block !important;
+    
+    /* 强制定位到 body 右下角 */
+    position: absolute !important;
     bottom: 8%;
     right: 5%;
     max-width: 360px;
     text-align: right;
     
-    /* 继承原版的字体，或者你可以强制指定 */
+    /* 强制重置所有干扰属性 */
+    margin: 0 !important;
+    height: auto !important;
+    transform: none; /* 除非是动画触发，否则不偏移 */
+    
+    /* 字体样式 */
     font-family: 'HitokotoFont', "KaiTi", serif; 
-    
-    /* 调整字号，原版可能很大，这里适配一下布局 */
-    font-size: 1.8vh; 
-    
-    /* 颜色保持原版逻辑（自动变色），或者强制覆盖为白色 */
-    color: rgba(255, 255, 255, 0.95) !important; 
-    text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important;
-    
+    font-size: 1.6vh; 
     line-height: 1.6;
     font-style: italic;
     
-    /* 层级必须高于前景山峰(z=10) */
-    z-index: 12; 
+    /* 【核心】强制颜色为白色，无视 JS 的颜色计算 */
+    color: rgba(255, 255, 255, 0.95) !important; 
+    text-shadow: 0 2px 5px rgba(0,0,0,0.9) !important;
     
-    /* 加个右侧装饰线，保持设计感 */
+    /* 【核心】禁止主程序的 colorChange 动画 */
+    animation: none !important;
+    
+    /* 层级最高 */
+    z-index: 12 !important; 
+    
+    /* 装饰 */
     border-right: 2px solid rgba(0, 229, 255, 0.6);
     padding-right: 15px;
     
-    /* 确保原版可能存在的 margin 不会干扰定位 */
-    margin: 0 !important;
-    
-    /* 确保动画过程中的高度变化不影响布局 */
-    height: auto !important;
+    /* 必须保留 transition 才能让迷雾动画生效 */
+    transition: opacity 1.2s ease-in-out, filter 1.2s ease-in-out, transform 1.2s ease-in-out;
+}
+
+/* 迷雾动画的状态类保持不变 */
+.hitokoto-fade-out {
+    opacity: 0 !important;
+    filter: blur(10px) !important;
+    transform: translateY(-20px) !important; 
+}
+
+.hitokoto-ready-in {
+    opacity: 0 !important;
+    filter: blur(10px) !important;
+    transform: translateY(20px) !important;
+    transition: none !important; 
 }

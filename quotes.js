@@ -4,7 +4,7 @@ const localQuotesData = [
     // =======================
     // 1. 高考与拼搏 (打鸡血)
     // =======================
-    { "hitokoto": "乾坤未定，你我皆是黑马。", "from": "高考励志" },
+/*    { "hitokoto": "乾坤未定，你我皆是黑马。", "from": "高考励志" },
     { "hitokoto": "星光不问赶路人，时光不负有心人。", "from": "网络" },
     { "hitokoto": "须知少时拏云志，曾许人间第一流。", "from": "题三十小像" },
     { "hitokoto": "大鹏一日同风起，扶摇直上九万里。", "from": "李白" },
@@ -98,7 +98,7 @@ const localQuotesData = [
     { "hitokoto": "弱小和无知不是生存的障碍，傲慢才是。", "from": "三体" },
     { "hitokoto": "给岁月以文明，而不是给文明以岁月。", "from": "三体" },
     { "hitokoto": "黑夜给了我黑色的眼睛，我却用它寻找光明。", "from": "顾城" },
-    
+    */
     // =======================
     // 6. 英语金句 (练练阅读)
     // =======================
@@ -110,7 +110,7 @@ const localQuotesData = [
     { "hitokoto": "The only way to do great work is to love what you do.", "from": "Steve Jobs" },
     { "hitokoto": "Winter is coming.", "from": "Game of Thrones" },
     { "hitokoto": "To be, or not to be, that is the question.", "from": "Shakespeare" },
-    
+    /*
     // =======================
     // 7. 历史与家国
     // =======================
@@ -122,5 +122,5 @@ const localQuotesData = [
     { "hitokoto": "星星之火，可以燎原。", "from": "毛泽东" },
     { "hitokoto": "不管风吹浪打，胜似闲庭信步。", "from": "毛泽东" },
     { "hitokoto": "三十功名尘与土，八千里路云和月。", "from": "岳飞" },
-    { "hitokoto": "人生自古谁无死？留取丹心照汗青。", "from": "文天祥" }
+    { "hitokoto": "人生自古谁无死？留取丹心照汗青。", "from": "文天祥" }*/
 ];

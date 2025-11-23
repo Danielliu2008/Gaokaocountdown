@@ -6,7 +6,7 @@
 const CONFIG = {
     enableLocalWallpaper: true,   // 开关：本地/网络
     wallpaperMode: 'time',        // 模式：'time' | 'random'
-    currentTheme: 'depth_pro',    // 当前主题 Key (对应 index.json)
+    currentTheme: 'shanghai_dream',    // 当前主题 Key (对应 index.json)
     refreshInterval: 20 * 60000,  // 刷新间隔
     useDynamicColor: true,        // 自动取色开关
     countdownMode: 'days'         // 倒计时模式
@@ -408,32 +408,83 @@ function initMeteorEffect() {
     }
 }
 
+let currentTypingTimer = null; 
+
+function typeEffect(element, text, callback) {
+    // 1. 【核心】强制清除正在进行的任何打字/删除操作
+    // 无论之前是在打字还是删除，只要新指令来了，旧的立刻下岗
+    if (currentTypingTimer) {
+        clearInterval(currentTypingTimer);
+        currentTypingTimer = null;
+    }
+    
+    let index = 0;
+    
+    // 2. 启动新的打字机
+    currentTypingTimer = setInterval(() => {
+        // 安全检查：如果元素意外丢失，停止计时
+        if (!element) {
+            clearInterval(currentTypingTimer);
+            return;
+        }
+
+        if (index < text.length) {
+            element.innerText += text.charAt(index);
+            index++;
+        } else {
+            // 完成
+            clearInterval(currentTypingTimer);
+            currentTypingTimer = null;
+            if (callback) callback();
+        }
+    }, 100);
+}
+
+function deleteEffect(element, callback) {
+    // 1. 【核心】强制清除正在进行的任何打字/删除操作
+    if (currentTypingTimer) {
+        clearInterval(currentTypingTimer);
+        currentTypingTimer = null;
+    }
+    
+    let text = element.innerText || '';
+    
+    // 2. 启动删除动画
+    currentTypingTimer = setInterval(() => {
+        if (!element) {
+            clearInterval(currentTypingTimer);
+            return;
+        }
+
+        if (text.length > 0) {
+            text = text.substring(0, text.length - 1);
+            element.innerText = text;
+        } else {
+            // 完成
+            clearInterval(currentTypingTimer);
+            currentTypingTimer = null;
+            if (callback) callback();
+        }
+    }, 30);
+}
+
 async function updateHitokoto(isInit) {
     const el = document.getElementById("hitokoto");
     if (!el) return;
+
     if (STATE.quotes.data.length === 0) {
-        if (typeof localQuotesData !== 'undefined') STATE.quotes.data = [...localQuotesData].sort(() => Math.random() - 0.5);
-        else return;
+        if (typeof localQuotesData !== 'undefined') {
+            STATE.quotes.data = [...localQuotesData].sort(() => Math.random() - 0.5);
+        } else { return; }
     }
     const item = STATE.quotes.data[STATE.quotes.index++ % STATE.quotes.data.length];
     const text = `${item.hitokoto} -- ${item.from || '佚名'}`;
-    
-    const type = (str) => {
-        let i = 0; el.innerText = '';
-        const timer = setInterval(() => {
-            el.innerText += str.charAt(i++);
-            if (i >= str.length) { clearInterval(timer); updateAutoColorElements(); }
-        }, 100);
-    };
-    if (isInit) type(text);
-    else {
-        let old = el.innerText;
-        const delTimer = setInterval(() => {
-            if (old.length > 0) { old = old.slice(0, -1); el.innerText = old; } 
-            else { clearInterval(delTimer); type(text); }
-        }, 30);
-    }
+
+    // 默认行为：直接替换，无动画 (各主题如果有需要，自己去覆盖这个函数)
+    el.innerText = text;
+    if (typeof updateAutoColorElements === 'function') updateAutoColorElements();
 }
+
 
 function syncTime() {
     const xhr = new XMLHttpRequest();

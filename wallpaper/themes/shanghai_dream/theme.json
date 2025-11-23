@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "name": "Shanghai Mech",
+    "css": "theme.css"
+  },
+  "schedule": [
+    {
+      "time": [0, 24],
+      "desc": "上海·机械迷城",
+      "items": [
+        {
+          "type": "layers",
+          "class": "shanghai-mech",
+          "script": "layout.js", 
+          "layers": [
+            { "src": "street.jpg", "z": 1 },     
+            { "src": "street_taxi.png", "z": 10 },
+            { "src": "street_walkers.png", "z": 10 } 
+          ],
+          "style": {
+            "color": "transparent" 
+          }
+        }
+      ]
+    }
+  ]
+}

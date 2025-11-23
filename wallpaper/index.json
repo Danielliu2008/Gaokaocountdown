@@ -1,8 +1,8 @@
 {
-  "active": "depth_pro", 
+  "active": "shanghai_dream",
   "list": {
     "default": "themes/default",
     "depth_pro": "themes/depth_pro",
-    "anime": "themes/anime_collection"
+    "shanghai_dream": "themes/shanghai_dream"
   }
 }
