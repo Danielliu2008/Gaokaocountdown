@@ -1,0 +1,151 @@
+/* 1. 字体注册 (保持不变) */
+@font-face {
+    font-family: 'RampartOne';
+    src: url('./fonts/Rampart_One/RampartOne-Regular.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'NumberFont';
+    src: url('../../../number.ttf') format('truetype'); 
+}
+
+/* 2. 隐藏原有元素 */
+body.linear-layout-mode #orbit-countdown,
+body.linear-layout-mode #full-countdown-container,
+body.linear-layout-mode #greeting, {
+    display: none !important;
+}
+
+/* 3. 容器设置 */
+#custom-linear-layout {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* 4. 引导线 (更细致，更靠右) */
+.guide-line {
+    position: absolute;
+    top: 15%;        /* 顶部留白增加 */
+    right: 12%;      /* 【关键】向右移：从 18% 改为 12% */
+    width: 1px;      /* 线条变细，更精致 */
+    height: 60%;     
+    background: linear-gradient(to bottom, 
+        rgba(255,255,255,0) 0%, 
+        rgba(255,255,255,0.6) 20%, 
+        rgba(255,255,255,0.6) 80%, 
+        rgba(255,255,255,0) 100%
+    );
+    z-index: 5;
+}
+
+/* 5. 文字组容器 (紧贴引导线) */
+.text-group {
+    position: absolute;
+    top: 20%;        
+    
+    /* 【修改点1】向右靠拢 */
+    /* 引导线在 12%，我们将文字放在 12.2% 的位置，几乎紧贴 */
+    right: 12.2%;    
+    
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end; /* 确保内部文字右对齐 */
+    
+    /* 【修改点2】减小右侧内边距 */
+    /* 之前是 15px，现在改为 5px，消除空隙感 */
+    padding-right: 5px; 
+    
+    z-index: 5;    
+}
+
+/* 6. 通用行样式 */
+.layout-line {
+    white-space: nowrap;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.6); 
+    position: relative; /* 为子元素的绝对定位做准备 */
+}
+
+/* 7. 竖排年份 (更小，更精致) */
+.vertical-year {
+    position: absolute;
+    top: 15%;       
+    right: 9%;       /* 在线条右侧 */
+    font-family: 'NumberFont', sans-serif;
+    font-size: 4vh;  /* 【关键】从 6vh 减小到 4vh */
+    color: rgba(255, 255, 255, 0.4); /* 降低不透明度，作为背景装饰 */
+    writing-mode: vertical-rl; 
+    letter-spacing: 0.8vh; /* 增加字间距，更有呼吸感 */
+    z-index: 5;
+    font-weight: bold;
+}
+
+/* 8. 一言样式 */
+/* 2. 隐藏原有元素 (注意：把 #hitokoto 从这里移除，不要隐藏它了！) */
+body.linear-layout-mode #orbit-countdown,
+body.linear-layout-mode #full-countdown-container,
+body.linear-layout-mode #greeting {
+    display: none !important;
+}
+/* 注意：上面删除了 #hitokoto，因为它被 JS 搬运到了新容器里，我们要显示它 */
+
+
+/* ... 中间的 CSS 保持不变 ... */
+
+
+/* 8. 搬运后的一言样式 (复刻原版风格 + 适配新位置) */
+/* theme.css 末尾 */
+
+.moved-hitokoto {
+    /* 强制显示 */
+    display: block !important;
+    
+    /* 强制定位到 body 右下角 */
+    position: absolute !important;
+    bottom: 8%;
+    right: 5%;
+    max-width: 360px;
+    text-align: right;
+    
+    /* 强制重置所有干扰属性 */
+    margin: 0 !important;
+    height: auto !important;
+    transform: none; /* 除非是动画触发，否则不偏移 */
+    
+    /* 字体样式 */
+    font-family: 'HitokotoFont', "KaiTi", serif; 
+    font-size: 1.6vh; 
+    line-height: 1.6;
+    font-style: italic;
+    
+    /* 【核心】强制颜色为白色，无视 JS 的颜色计算 */
+    color: rgba(255, 255, 255, 0.95) !important; 
+    text-shadow: 0 2px 5px rgba(0,0,0,0.9) !important;
+    
+    /* 【核心】禁止主程序的 colorChange 动画 */
+    animation: none !important;
+    
+    /* 层级最高 */
+    z-index: 12 !important; 
+    
+    /* 装饰 */
+    border-right: 2px solid rgba(0, 229, 255, 0.6);
+    padding-right: 15px;
+    
+    /* 必须保留 transition 才能让迷雾动画生效 */
+    transition: opacity 1.2s ease-in-out, filter 1.2s ease-in-out, transform 1.2s ease-in-out;
+}
+
+/* 迷雾动画的状态类保持不变 */
+.hitokoto-fade-out {
+    opacity: 0 !important;
+    filter: blur(10px) !important;
+    transform: translateY(-20px) !important; 
+}
+
+.hitokoto-ready-in {
+    opacity: 0 !important;
+    filter: blur(10px) !important;
+    transform: translateY(20px) !important;
+    transition: none !important; 
+}

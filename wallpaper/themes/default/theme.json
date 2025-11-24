@@ -1,0 +1,23 @@
+{
+  "themeName": "多层景深主题",
+  "schedule": [
+    {
+      "start": 0, "end": 24, "folder": "depth_demo",
+      "images": [
+        {
+          "desc": "普通单图模式",
+          "file": "normal.jpg" 
+        },
+        {
+          "desc": "多层景深模式",
+          "layers": [
+            { "file": "bg.jpg", "z": 1 },      
+            { "file": "middle_clouds.png", "z": 3 }, 
+            { "file": "foreground_girl.png", "z": 10 } 
+          ],
+          "style": { "color": "#ffe0e0" } 
+        }
+      ]
+    }
+  ]
+}

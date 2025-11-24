@@ -1,0 +1,63 @@
+{
+  "meta": {
+    "name": "雪山景深-线性排版",
+    "css": "theme.css"
+  },
+  "schedule": [
+    {
+      "time": [0, 24], 
+      "desc": "全天候固定显示",
+      "items": [
+        {
+          "type": "layers",
+          "desc": "杂志风线性排版",
+          "class": "linear-layout-mode",
+          "script": "layout.js", 
+          "layers": [
+            { "src": "mountains_bg.jpg", "z": 1 },
+            { "src": "mountains_layer_front.png", "z": 10 }
+          ],
+"layoutConfig": {
+            "content": [
+              { 
+                "text": "再坚持", 
+                "size": "4vh", 
+                "color": "rgba(255,255,255,0.95)", 
+                "font": "SimHei", 
+                "marginTop": "0" 
+              },
+              { 
+                "text": "{days}", 
+                "size": "18vh",       
+                "color": "#aeeeee", 
+                "font": "RampartOne", 
+                "marginTop": "-4vh" 
+              },
+              { 
+                "text": "天", 
+                "size": "3vh", 
+                "color": "rgba(255,255,255,0.8)", 
+                "font": "SimHei", 
+                "isOverlay": true 
+              },
+              { 
+                "text": "去更高处，看无人之境", 
+                "size": "3.2vh",  
+                "color": "rgba(255,255,255,0.95)", 
+                "font": "Microsoft YaHei", 
+                "marginTop": "1.5vh" 
+              },
+              { 
+                "text": "未来的你，会感谢此刻的坚定", 
+                "size": "2.2vh", 
+                "color": "rgba(255,255,255,0.85)", 
+                "font": "SimSun", 
+                "marginTop": "1vh" 
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

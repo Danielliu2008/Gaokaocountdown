@@ -1,0 +1,77 @@
+/* 激活样式 */
+body.shanghai-dream {
+    background-color: #1a1a1a;
+}
+
+/* 1. 隐藏原本的星轨圆环和文字路径 */
+body.shanghai-dream #orbit-countdown::before,
+body.shanghai-dream #orbit-countdown::after,
+body.shanghai-dream .orbit-text-path,
+body.shanghai-dream .meteor-container {
+    display: none !important; /* 强制隐藏所有圆圈和流星 */
+}
+
+/* 2. 主时间显示 (时:分) */
+body.shanghai-dream #orbit-day-number {
+    font-family: 'Playfair Display', 'Times New Roman', serif; /* 保持衬线体的高级感 */
+    font-size: 180px; /* 大小暂时定这里，后面可调 */
+    font-weight: 400; /* 稍微细一点，更显极简 */
+    line-height: 1;
+    letter-spacing: -5px; /* 紧凑一点 */
+    
+    /* 简约的金色/白金渐变 */
+    background: linear-gradient(135deg, #fff 0%, #d4af37 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    
+    /* 阴影增加立体感 */
+    filter: drop-shadow(0 10px 30px rgba(0,0,0,0.5));
+    
+    /* 位置 */
+    position: relative;
+    top: 60px; /* 初始位置，你可以改 */
+    
+    /* 解决右侧残缺的关键 */
+    width: auto; 
+    padding: 0 50px; /* 给左右留足空间 */
+    overflow: visible;
+}
+
+/* 3. 新增：简约线条装饰 */
+/* 利用伪元素在时间下方画一条线 */
+body.shanghai-dream #orbit-countdown::after {
+    content: '';
+    display: block !important; /* 覆盖掉上面的隐藏 */
+    position: absolute;
+    bottom: 25%; /* 在数字下方 */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px; /* 线条长度 */
+    height: 1px;  /* 极细线条 */
+    background: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.8); /* 金色发光 */
+}
+
+/* 4. 秒数显示 (原年份位置) */
+body.shanghai-dream #orbit-year {
+    font-family: 'Helvetica Neue', sans-serif; /* 用无衬线体做对比 */
+    font-size: 24px;
+    letter-spacing: 5px;
+    color: rgba(255, 255, 255, 0.8);
+    position: absolute;
+    bottom: 18%; /* 放在线条下方 */
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+}
+
+/* 底部语录位置 */
+body.shanghai-dream #hitokoto {
+    position: absolute;
+    top: 85%; 
+    width: 100%;
+    text-align: center;
+    color: rgba(255,255,255,0.6);
+    text-shadow: 0 1px 2px black;
+    font-family: 'Songti SC', serif;
+}
